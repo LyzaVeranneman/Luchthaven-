@@ -97,8 +97,10 @@ th{color:#f4c84a;font-weight:700}
   <button data-p="extra"><span>🪴</span>Extra</button>
   <button data-p="grond"><span>🗺️</span>Uitbreiden</button>
   <button data-p="platform"><span>🛬</span>Platform</button>
+  <button data-p="veh"><span>🚚</span>Afhandeling</button>
   <button data-p="staff"><span>👥</span>Personeel</button>
   <button data-p="flights"><span>🛫</span>Vluchten</button>
+  <button data-p="airlines"><span>🤝</span>Airlines</button>
   <button data-p="bank"><span>🏦</span>Bank</button>
   <button data-p="sloop"><span>🧨</span>Slopen</button>
 </div>
@@ -135,12 +137,18 @@ const TYPES={
   massage:{n:'Massagestoel',e:'💆',c:700,sz:1,svc:3,col:'#8e44ad',earn:8,fun:1,cat:'comfort'},
   fountain:{n:'Fontein',e:'⛲',c:900,sz:2,col:'#5dade2',cat:'extra',noacc:1,d:'Maakt reizigers in een grote straal blij.'},
   plant:{n:'Plant',e:'🪴',c:60,sz:1,col:'#4f9a46',cat:'extra',noacc:1,d:'Maakt reizigers in de buurt blij.'},
-  bin:{n:'Vuilbak',e:'🗑️',c:60,sz:1,col:'#7a8088',cat:'extra',noacc:1,d:'Minder afval in de buurt.'}
+  bin:{n:'Vuilbak',e:'🗑️',c:60,sz:1,col:'#7a8088',cat:'extra',noacc:1,d:'Minder afval in de buurt.'},
+  busgate:{n:'Busgate',e:'🚌',c:2500,sz:3,col:'#1f7a8c',cat:'basis',d:'Wachtzaal voor vluchten op een vliegtuigparking: een platformbus brengt de reizigers naar het toestel. Mag overal in de terminal.'},
+  taxi:{n:'Taxibaan',e:'🛣️',c:150,sz:1,col:'#6b7079',cat:'platform',air:1,noacc:1,d:'Verbindt parkings en landingsbanen.'},
+  stand:{n:'Vliegtuigparking',e:'🅿️',c:4000,sz:4,col:'#5d636b',cat:'platform',air:1,noacc:1,d:'Extra plaats voor een vliegtuig. Verbind ze met een taxibaan met de landingsbaan en bouw een busgate in de terminal.'},
+  garage:{n:'Garage',e:'🔧',c:5000,sz:3,col:'#7f8c8d',cat:'platform',air:1,noacc:1,d:'Onderhoudt je voertuigen automatisch en sleept kapotte voertuigen weg.'},
+  fire:{n:'Brandweer',e:'🚒',c:8000,sz:3,col:'#c0392b',cat:'platform',air:1,noacc:1,d:'Kazerne met brandweerwagen (€250/dag). Blust incidenten snel en is nodig voor grote vliegtuigen.'},
+  hangar:{n:'Hangar',e:'🏗️',c:12000,sz:4,col:'#95a5a6',cat:'platform',air:1,noacc:1,d:'Airlines huren hem: +€450 per dag. Sommige airlines willen een eigen hangar.'}
 };
 const SLOTS={checkin:[[.35,0]],security:[[.25,0]],cafe:[[.2,-.45],[.2,.45]],burger:[[.2,-.45],[.2,.45]],vending:[[.42,0]],shop:[[.1,-.4],[.1,.4]],dutyfree:[[.1,-.4],[.1,.4]],
   toilet:[[-.5,-.55],[-.5,0],[-.5,.55]],lounge:[[-.3,-.9],[-.3,-.3],[-.3,.3],[-.3,.9]],
   atm:[[.42,0]],pharmacy:[[.1,-.4],[.1,.4]],tech:[[.1,-.4],[.1,.4]],sushi:[[.2,-.45],[.2,.45]],restaurant:[[.3,-.8],[.3,0],[.3,.8],[-.5,-.4],[-.5,.4]],play:[[.3,-.5],[.3,.5],[-.3,0]],massage:[[.1,0]]};
-const SEATS={gate:[[.2,-.8],[.2,0],[.2,.8],[-.55,-.8],[-.55,0],[-.55,.8]],bench:[[0,-.22],[0,.22]]};
+const SEATS={gate:[[.2,-.8],[.2,0],[.2,.8],[-.55,-.8],[-.55,0],[-.55,.8]],bench:[[0,-.22],[0,.22]]};SEATS.busgate=SEATS.gate;
 const STAFFPOS={checkin:[-.42,0],security:[-.25,.62]};
 const FURN={
   checkin:[[-.1,0,.32,1.3,16,'#e3e9f0'],[-.1,-.78,.3,.22,6,'#4a4f57']],
@@ -153,6 +161,7 @@ const FURN={
   toilet:[[-.5,-.82,.6,.04,26,'#ffffff'],[-.5,-.27,.6,.04,26,'#ffffff'],[-.5,.27,.6,.04,26,'#ffffff'],[-.5,.82,.6,.04,26,'#ffffff'],[.62,0,.2,.9,10,'#dfe6ee']],
   lounge:[[-.3,-.6,.38,1.0,9,'#8e2b3f'],[-.3,.6,.38,1.0,9,'#8e2b3f'],[-1.18,0,.3,2.4,16,'#5d4037'],[.45,0,.4,.4,8,'#e8e8e8'],[1.05,1.0,.3,.3,14,'#3f7a3a']],
   gate:[[-.85,0,.12,2.5,12,'#2c46b8'],[1.0,1.0,.35,.6,14,'#e3e9f0']],
+  busgate:[[-.85,0,.12,2.5,12,'#1f7a8c'],[1.0,1.0,.35,.6,14,'#e3e9f0']],
   bench:[[-.2,0,.08,.85,15,'#2c46b8']],
   atm:[[-.12,0,.35,.5,28,'#2e86de']],
   pharmacy:[[-.66,0,.24,1.6,22,'#ffffff'],[.1,-.85,1.1,.18,18,'#58d68d'],[.55,.65,.3,.3,12,'#27ae60']],
@@ -191,18 +200,18 @@ function buyTerm(i){const t=TERMS[i];if(S.terms[i])return;if(S.level<t.lv){toast
   S.money-=t.c;S.terms[i]=true;setOwned();addXP(30);showModal(`<h1>🏢 ${t.n} geopend!</h1><p>Een gloednieuwe, lege terminal met een eigen ingang. Bouw er balies, security en gates. Reizigers van gates in deze terminal komen via de eigen ingang.</p><p>💡 Personeel en schoonmakers pendelen automatisch tussen terminals waar werk is.</p><button class="b y" style="width:100%;padding:12px" onclick="$('modal').style.display='none';focusTerm(${i})">📍 Bekijk ${t.n}</button>`);saveGame();}
 const plotAt=y=>PLOTS.findIndex(p=>y>=p.y0&&y<p.y1);
 const XPN=n=>Math.round(30*Math.pow(n-1,2)),MAXLV=15;
-const UNLOCK={cafe:2,vending:2,shop:3,atm:3,burger:4,play:5,lounge:6,fountain:6,dutyfree:7,massage:7,pharmacy:8,restaurant:9,tech:11,sushi:12};
+const UNLOCK={cafe:2,vending:2,shop:3,atm:3,burger:4,play:5,lounge:6,fountain:6,dutyfree:7,massage:7,pharmacy:8,restaurant:9,tech:11,sushi:12,garage:3,busgate:4,taxi:4,stand:4,fire:5,hangar:6};
 const RW_LV=7;
 const PLOT_LV=[4,8,5,10],UPG_LV=[0,0,3,6],GATECAP=[0,18,30,45],PLSC=[0,.8,1,1.22];
 const lockLv=k=>UNLOCK[k]||1;
-const canUpg=o=>!!(TYPES[o.type].svc||o.type=='gate');
+const canUpg=o=>!!(TYPES[o.type].svc||isGate(o));
 const upCost=o=>Math.round(TYPES[o.type].c*((o.lv||1)==1?.8:1.6)/10)*10;
 const DIFF=()=>1+(S.level-1)*.1;
 const svcTime=o=>TYPES[o.type].svc/(1+.35*((o.lv||1)-1));
 const earnOf=o=>Math.round((TYPES[o.type].earn||0)*(1+.4*((o.lv||1)-1)));
 function addXP(n){S.xp+=n;while(S.level<MAXLV&&S.xp>=XPN(S.level+1)){S.level++;levelUp();}}
-function unlocksAt(L){const un=Object.entries(UNLOCK).filter(([k,v])=>v==L).map(([k])=>TYPES[k].e+' '+TYPES[k].n);PLOT_LV.forEach((v,i)=>{if(v==L)un.push('🗺️ Grond '+PLOTS[i].n);});if(UPG_LV[2]==L)un.push('⬆️ Gebouwen upgraden naar ★★');if(UPG_LV[3]==L)un.push('⬆️ Gebouwen upgraden naar ★★★');if(RW_LV==L)un.push('🛬 Versterkte landingsbaan');TERMS.forEach(t=>{if(t.lv==L)un.push('🏢 '+t.n);});return un;}
-function levelUp(){const L=S.level,un=unlocksAt(L),r=300*L;S.money+=r;saveGame();
+function unlocksAt(L){const un=Object.entries(UNLOCK).filter(([k,v])=>v==L).map(([k])=>TYPES[k].e+' '+TYPES[k].n);PLOT_LV.forEach((v,i)=>{if(v==L)un.push('🗺️ Grond '+PLOTS[i].n);});if(UPG_LV[2]==L)un.push('⬆️ Gebouwen upgraden naar ★★');if(UPG_LV[3]==L)un.push('⬆️ Gebouwen upgraden naar ★★★');if(RW_LV==L)un.push('🛬 Versterkte landingsbaan');if(RW2_LV==L)un.push('🛬 Tweede landingsbaan');Object.values(VK).forEach(v=>{if(v.lv==L&&L>1&&v.c)un.push(v.e+' '+v.n);});Object.values(PT).forEach(p=>{if(p.lv==L&&L>1)un.push('🤝 Airline-contracten met '+p.adj+' toestellen');});TERMS.forEach(t=>{if(t.lv==L)un.push('🏢 '+t.n);});return un;}
+function levelUp(){const L=S.level,un=unlocksAt(L),r=300*L;S.money+=r;for(const[k,v]of Object.entries(VK))if(v.lv==L&&k!='bus'&&k!='fire'&&!S.veh.some(x=>x.k==k)){S.veh.push(newVeh(k));S.drivers++;un.push(`🎁 Gratis eerste ${v.n.toLowerCase()} + chauffeur`);}saveGame();
   showModal(`<h1>🏅 Level ${L}!</h1><p>Je luchthaven groeit! Bonus: <b style="color:#8fe39b">+€${r.toLocaleString('nl-BE')}</b></p>${un.length?`<p style="margin-bottom:0"><b>Nieuw ontgrendeld:</b></p><ul>${un.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}<p style="color:#f4c84a">⚠️ Het wordt moeilijker: meer en grotere vluchten, ongeduldigere reizigers en hogere verwachtingen.</p><button class="b y" style="width:100%;padding:12px" onclick="$('modal').style.display='none'">Verder!</button>`);}
 function upgrade(o){const lv=o.lv||1;if(lv>=3)return;if(S.level<UPG_LV[lv+1]){toast(`🔒 Upgrade naar ${'★'.repeat(lv+1)} kan vanaf level ${UPG_LV[lv+1]}`);return;}const c=upCost(o);if(S.money<c){toast('💸 Niet genoeg geld');return;}
   S.money-=c;o.lv=lv+1;floatTxt(o.x+o.sz/2,o.y+o.sz/2,40,'⬆️ '+'★'.repeat(o.lv),'#f4c84a');addXP(5);saveGame();}
@@ -231,6 +240,7 @@ function move(e,dt,spd){
 /* ================= building ================= */
 function canPlace(type,x,y,dir){
   const t=TYPES[type],n=t.sz;
+  if(t.air){for(let j=0;j<n;j++)for(let i=0;i<n;i++){const X=x+i,Y=y+j;if(!inZone(X,Y))return'Bouw dit op het groene platformterrein links van de landingsbaan';const q=agAt(X,Y);if(q)return q===RW2TILE?'Hier ligt landingsbaan 2':'Hier is geen plaats';}return null;}
   for(let j=0;j<n;j++)for(let i=0;i<n;i++){const X=x+i,Y=y+j;if(kind(X,Y)=='floor'&&!owned(Y))return'Deze grond is nog niet van jou — koop hem via 🗺️ Uitbreiden';if(kind(X,Y)!='floor'||S.grid[Y][X]||isEntrance(X,Y))return'Hier is geen plaats';}
   if(type=='gate'&&x!=AX)return'Een gate moet tegen het platform (linkerrand)';
   const tmp={type,x,y,dir,sz:n},a=acc(tmp);
@@ -250,14 +260,20 @@ function place(type,x,y,dir,free){
   const t=TYPES[type];if(!free&&S.money<t.c){toast('💸 Niet genoeg geld');return false;}
   const o={id:S.nid++,lv:1,type,x,y,dir,sz:t.sz,queue:[],serving:[],staff:null,staffed:false,flight:null,plane:null,dirt:0,incoming:0};
   if(SEATS[type])o.seats=SEATS[type].map(()=>null);
-  if(type=='gate')o.num=++S.gateNo;
-  S.objs.push(o);for(let j=0;j<t.sz;j++)for(let i=0;i<t.sz;i++){S.grid[y+j][x+i]=o;S.litter[y+j][x+i]=0;}
+  if(isGate(o))o.num=++S.gateNo;
+  if(type=='stand')o.num=++S.standNo;
+  S.objs.push(o);
+  if(t.air){o.air=1;for(let j=0;j<t.sz;j++)for(let i=0;i<t.sz;i++)S.ag[y+j][x+i-ZX0]=o;S.airV++;if(type=='fire')S.veh.push(newVeh('fire',o));}
+  else for(let j=0;j<t.sz;j++)for(let i=0;i<t.sz;i++){S.grid[y+j][x+i]=o;S.litter[y+j][x+i]=0;}
   if(!free){S.money-=t.c;floatTxt(x+t.sz/2,y+t.sz/2,30,'-€'+t.c,'#ff8a8a');}
   recompute();return true;
 }
 function sell(o){
-  if(o.flight||o.plane){toast('⚠️ Deze gate is in gebruik');return;}
-  o.dead=true;S.objs.splice(S.objs.indexOf(o),1);for(let j=0;j<o.sz;j++)for(let i=0;i<o.sz;i++)S.grid[o.y+j][o.x+i]=null;
+  if(o.flight||o.plane){toast(o.type=='stand'?'⚠️ Er staat een vliegtuig op deze parking':'⚠️ Deze gate is in gebruik');return;}
+  if(o.type=='fire'&&S.veh.some(v=>v.home===o&&v.state!='idle')){toast('🚒 De brandweer is aan het blussen');return;}
+  o.dead=true;S.objs.splice(S.objs.indexOf(o),1);
+  if(o.air){for(let j=0;j<o.sz;j++)for(let i=0;i<o.sz;i++)S.ag[o.y+j][o.x+i-ZX0]=null;S.airV++;if(o.type=='fire')S.veh=S.veh.filter(v=>v.home!==o);}
+  else for(let j=0;j<o.sz;j++)for(let i=0;i<o.sz;i++)S.grid[o.y+j][o.x+i]=null;
   const r=Math.round(TYPES[o.type].c/2);S.money+=r;floatTxt(o.x+o.sz/2,o.y+o.sz/2,30,'+€'+r,'#8fe39b');
   for(const p of [...o.queue,...o.serving.map(s=>s.p),...(o.seats||[]).filter(Boolean)]){detach(p);decide(p);}
   if(o.staff){const s=o.staff,a=acc(o);s.station=null;s.state='idle';s.path=null;s.x=a[0]+.5;s.y=a[1]+.5;}
@@ -372,7 +388,7 @@ function review(p,force){
   S.rep+=(avgStars()*20-S.rep)*.06;
 }
 function avgStars(){if(!S.reviews.length)return 2.5;return S.reviews.reduce((a,r)=>a+r.s,0)/S.reviews.length;}
-function board(p){const f=p.f;f.boarded++;S.money+=30;S.stats.boarded++;addXP(1);review(p);floatTxt(p.x,p.y,30,'+€30','#8fe39b');p.gone=true;}
+function board(p){const f=p.f,e=30+(f.c?f.c.fee:0);f.boarded++;S.money+=e;S.stats.boarded++;addXP(1);review(p);floatTxt(p.x,p.y,30,'+€'+e,'#8fe39b');p.gone=true;}
 function leave(p){detach(p);p.state='leaving';p.lost=false;if(!goTo(p,GW-1,doorOf(p.y)[ri(0,1)],()=>{p.gone=true;}))p.gone=true;}
 function spawnPax(f){
   const p={x:GW-.5,y:f.gate?TERMS[termOf(f.gate.y)].door[ri(0,1)]+.5:DOOR_Y[0]+.5,f,stage:0,state:'idle',wait:0,mood:rnd(78,100),bladder:rnd(0,50),hunger:rnd(0,50),bR:rnd(.6,1.4),hR:rnd(.5,1.2),litterT:rnd(10,40),path:null,
@@ -403,80 +419,262 @@ function updPax(p,dt){
   }
 }
 
+/* ================= airside: zone, runways, taxiways ================= */
+const ZX0=-21,ZX1=-8,ZW=ZX1-ZX0,RW1X=-5.3,RW2X=-18.5,LANE=-1.45,RW2_LV=10,RW2_C=60000;
+const RW2TILE={type:'rw2'};
+const inZone=(x,y)=>x>=ZX0&&x<ZX1&&y>=0&&y<GH;
+const agAt=(x,y)=>inZone(x,y)?S.ag[y][x-ZX0]:null;
+const isGate=o=>o.type=='gate'||o.type=='busgate';
+const hasFire=()=>S.objs.some(o=>o.type=='fire');
+const garage=()=>S.objs.find(o=>o.type=='garage');
+function zbfs(srcs,pass){
+  const N=ZW*GH,dist=new Int16Array(N).fill(-1),prev=new Int32Array(N).fill(-1),q=[];
+  for(const[x,y]of srcs){const n=y*ZW+x-ZX0;if(dist[n]<0){dist[n]=0;q.push(n);}}
+  let h=0;while(h<q.length){const c=q[h++],cx=c%ZW+ZX0,cy=(c/ZW)|0;for(const[dx,dy]of D){const nx=cx+dx,ny=cy+dy;if(!inZone(nx,ny)||!pass(nx,ny))continue;const n=ny*ZW+nx-ZX0;if(dist[n]>=0)continue;dist[n]=dist[c]+1;prev[n]=c;q.push(n);}}
+  return{dist,prev};
+}
+// tiles from the closest reached tile in column `col` back to a BFS root
+function zpath(b,col){let best=-1,bd=1e9;for(let y=0;y<GH;y++){const n=y*ZW+col-ZX0,d=b.dist[n];if(d>=0&&d<bd){bd=d;best=n;}}if(best<0)return null;const p=[];for(let n=best;n>=0;n=b.prev[n])p.push([n%ZW+ZX0,(n/ZW)|0]);return p;}
+// route runway -> stand (tile list), cached until the airside layout changes
+function standPath(st,rw){
+  if(rw==2&&!S.rw2)return null;
+  const k='p'+rw;if(st[k]&&st[k].v==S.airV)return st[k].p;
+  const src=[];for(let j=0;j<st.sz;j++)for(let i=0;i<st.sz;i++)src.push([st.x+i,st.y+j]);
+  const p=zpath(zbfs(src,(x,y)=>{const o=agAt(x,y);return o&&(o.type=='taxi'||o===st);}),rw==1?ZX1-1:ZX0+5);
+  st[k]={v:S.airV,p};return p;
+}
+// route runway 2 -> runway 1
+function connPath(){
+  if(!S.rw2)return null;if(S.conn&&S.conn.v==S.airV)return S.conn.p;
+  const src=[];for(let y=0;y<GH;y++){const o=agAt(ZX1-1,y);if(o&&o.type=='taxi')src.push([ZX1-1,y]);}
+  const p=zpath(zbfs(src,(x,y)=>{const o=agAt(x,y);return o&&o.type=='taxi';}),ZX0+5);
+  S.conn={v:S.airV,p};return p;
+}
+const standOK=st=>!!(standPath(st,1)||standPath(st,2));
+const rwInc=r=>S.inc.some(i=>i.rw==r);
+function rwOK(r){return r==1?!(S.min<S.repairEnd)&&S.runway>=15&&!rwInc(1):!!S.rw2&&!rwInc(2);}
+function setRw2(){S.rw2=true;for(let y=0;y<GH;y++)for(let x=ZX0;x<ZX0+5;x++)S.ag[y][x-ZX0]=RW2TILE;S.airV++;}
+function buyRw2(){
+  if(S.rw2)return;if(S.level<RW2_LV){toast(`🔒 Landingsbaan 2 kan vanaf level ${RW2_LV}`);return;}
+  if(S.money<RW2_C){toast(`💸 Niet genoeg geld (${eur(RW2_C)} nodig)`);return;}
+  for(let y=0;y<GH;y++)for(let x=ZX0;x<ZX0+5;x++)if(agAt(x,y)){toast('⚠️ Maak eerst de strook helemaal links vrij (5 vakjes breed)');return;}
+  S.money-=RW2_C;setRw2();addXP(40);
+  showModal(`<h1>🛬 Landingsbaan 2 geopend!</h1><p>Leg nu een <b>taxibaan</b> van baan 2 (links) naar baan 1. Pas dan kunnen vliegtuigen er landen.</p><p>💡 Met twee banen gaan er minder vluchten verloren bij onderhoud of een incident.</p><button class="b y" style="width:100%;padding:12px" onclick="$('modal').style.display='none';focusZone()">📍 Bekijk het platform</button>`);saveGame();
+}
+
+/* ================= flight slots & routes ================= */
+const PT={S:{n:'Regionaal',adj:'regionale',pax:18,lv:1,sc:1},M:{n:'Middelgroot',adj:'middelgrote',pax:30,lv:3,sc:2},L:{n:'Groot',adj:'grote',pax:45,lv:6,sc:3}};
+function slots(){
+  const out=[];
+  for(const g of S.objs)if(g.type=='gate'&&!g.flight&&!g.plane)out.push({g,cap:GATECAP[g.lv||1]});
+  const bgs=S.objs.filter(o=>o.type=='busgate'&&!o.flight).sort((a,b)=>(b.lv||1)-(a.lv||1));
+  const sts=S.objs.filter(o=>o.type=='stand'&&!o.plane&&!o.flight&&standOK(o));
+  for(let i=0;i<Math.min(bgs.length,sts.length);i++)out.push({g:bgs[i],st:sts[i],cap:GATECAP[bgs[i].lv||1]});
+  return out;
+}
+const slotRws=s=>[1,2].filter(r=>rwOK(r)&&(s.st?!!standPath(s.st,r):r==1||!!connPath()));
+function placesTotal(){return S.objs.filter(o=>o.type=='gate').length+Math.min(S.objs.filter(o=>o.type=='busgate').length,S.objs.filter(o=>o.type=='stand'&&standOK(o)).length);}
+function arrivalRoute(pl,g,st,rw){
+  const X=rw==1?RW1X:RW2X,T=([x,y])=>[x+.5,y+.5,2];let wp,ty;
+  if(st){const p=standPath(st,rw);ty=p[0][1]+.5;wp=[[X,ty,7],...p.map(T),[st.x+st.sz/2,st.y+st.sz/2,1.4]];pl.route=p;}
+  else{const gy=g.y+1.5,park=[2.75-1.7*pl.sc,gy,1.6];
+    if(rw==1){ty=gy;wp=[[X,gy,7],[-2.4,gy,2.2],park];}
+    else{const p=connPath(),ey=p[p.length-1][1]+.5;ty=p[0][1]+.5;wp=[[X,ty,7],...p.map(T),[RW1X,ey,2.2],[RW1X,gy,2.2],[-2.4,gy,2.2],park];}}
+  pl.x=X;pl.y=ty-26;pl.ang=Math.PI/2;pl.wp=wp;
+}
+function departRoute(pl,f){
+  if(f.stand){const p=pl.route,X=pl.rw==1?RW1X:RW2X,ty=p[0][1]+.5;pl.wp=[...p.slice().reverse().map(([x,y])=>[x+.5,y+.5,1.6]),[X,ty,2],[X,ty+26,8]];pl.g=f.stand;pl.fadeY=ty+12;pl.rev=false;}
+  else{const gy=f.gate.y+1.5;pl.wp=[[-2.4,gy,1.4],[RW1X,gy,2.2],[RW1X,gy+26,8]];pl.g=f.gate;pl.fadeY=gy+12;pl.rev=true;}
+  pl.state='depart';pl.fade=true;
+}
+
 /* ================= flights & planes ================= */
-function newFlight(){
-  if(S.min<S.repairEnd){toast('🚧 Landingsbaan in onderhoud — vlucht omgeleid');return;}
-  if(S.runway<15){S.rep-=1;toast('🛑 Landingsbaan te beschadigd! Vlucht geweigerd — plan onderhoud (🛬 Platform)');return;}
-  const gates=S.objs.filter(o=>o.type=='gate');
-  if(!gates.length){toast('✈️ Een vlucht wil landen, maar je hebt geen gate!');return;}
-  const free=gates.filter(o=>!o.flight&&!o.plane);
-  if(!free.length){toast('✈️ Vlucht geweigerd: alle gates bezet. Bouw er meer!');return;}
-  const g=pick(free),day=Math.floor(S.min/1440);
-  const want=Math.round((5+S.rep/8+day*1.2+rnd(0,4))*(1+(S.level-1)*.09)),cap=GATECAP[g.lv||1],pax=Math.min(cap,want);
-  if(want>cap+3&&S.min-(S.lastBig||-999)>240){S.lastBig=S.min;toast(`✈️ Grotere vliegtuigen willen landen — upgrade je gates (max ${cap} passagiers)`);}
-  const f={code:pick(['SN','FR','KL','LH','BA','VY','TB','HV'])+ri(100,999),dest:pick(DESTS),created:S.min,dep:S.min+150,pax,spawned:0,boarded:0,missed:0,gate:g,color:COLS[S.fc++%COLS.length],state:'open'};
-  const gy=g.y+1.5;
-  const sc=PLSC[g.lv||1],pl={x:-5.3,y:gy-26,ang:Math.PI/2,sc,f,color:f.color,state:'arrive',alpha:1,wp:[[-5.3,gy,7],[-2.4,gy,2.2],[2.75-1.7*sc,gy,1.6]],rev:false};
-  g.flight=f;g.plane=pl;f.plane=pl;S.flights.push(f);S.planes.push(pl);
-  toast(`🛬 ${f.code} uit ${f.dest} landt — gate ${g.num}, ${pax} passagiers`);
+function newFlight(c){
+  const al=c?AIRL[c.al]:null,code=c?al.c+c.no:pick(['SN','FR','KL','LH','BA','VY','TB','HV'])+ri(100,999);
+  if(![1,2].some(rwOK)){
+    if(c)contractMiss(c,'geen landingsbaan vrij');
+    else if(S.min<S.repairEnd)toast('🚧 Landingsbaan in onderhoud — vlucht omgeleid');
+    else if(rwInc(1))toast('🔥 Landingsbaan dicht door een incident — vlucht omgeleid');
+    else{S.rep-=1;toast('🛑 Landingsbaan te beschadigd! Vlucht geweigerd — plan onderhoud (🛬 Platform)');}
+    return;}
+  if(!S.objs.some(isGate)){if(c)contractMiss(c,'je hebt geen gate');else toast('✈️ Een vlucht wil landen, maar je hebt geen gate!');return;}
+  const need=c?PT[c.pt].pax:0,opts=slots().map(s=>({...s,rws:slotRws(s)})).filter(s=>s.rws.length&&s.cap>=need);
+  if(!opts.length){if(c)contractMiss(c,need>18?`geen vrije gate ${'★'.repeat(PT[c.pt].sc)} voor een ${PT[c.pt].n.toLowerCase()} toestel`:'alle gates bezet');else toast('✈️ Vlucht geweigerd: alle gates bezet. Bouw er meer!');return;}
+  if(!c&&opts.length<=reservedSoon())return; // houd plaats vrij voor geplande vluchten
+  const jw=opts.filter(s=>!s.st),sl=jw.length?pick(jw):pick(opts),g=sl.g;
+  let pax,sc;
+  if(c){pax=Math.min(sl.cap,Math.round(PT[c.pt].pax*rnd(.8,1)*(.85+S.rep/650)));sc=PLSC[PT[c.pt].sc];}
+  else{const day=Math.floor(S.min/1440),want=Math.round((5+S.rep/8+day*1.2+rnd(0,4))*(1+(S.level-1)*.09));pax=Math.min(sl.cap,want);sc=PLSC[g.lv||1];
+    if(want>sl.cap+3&&S.min-(S.lastBig||-999)>240){S.lastBig=S.min;toast(`✈️ Grotere vliegtuigen willen landen — upgrade je gates (max ${sl.cap} passagiers)`);}}
+  const rw=sl.rws.length>1?(Math.random()<.5?1:2):sl.rws[0];
+  const f={code,dest:c?c.dest:pick(DESTS),c:c||null,created:S.min,dep:c?S.min-S.min%1440+c.dep:S.min+150,pax,spawned:0,boarded:0,missed:0,gate:g,stand:sl.st||null,color:c?al.col:COLS[S.fc++%COLS.length],state:'open',need:['fuel','bag'],done:{}};
+  if(S.level>=VK.cater.lv)f.need.push('cater');if(f.stand)f.need.push('bus');
+  const pl={sc,f,color:f.color,state:'arrive',alpha:1,rw,rev:false,inc:S.level>=3&&Math.random()<.015+(rw==1&&S.runway<35?.03:0)};
+  arrivalRoute(pl,g,sl.st,rw);
+  g.flight=f;if(sl.st){sl.st.flight=f;sl.st.plane=pl;}else g.plane=pl;
+  f.plane=pl;S.flights.push(f);S.planes.push(pl);
+  toast(`🛬 ${f.code}${c?' ('+al.n+')':''} uit ${f.dest} landt${rw==2?' op baan 2':''} — ${f.stand?'parking P'+f.stand.num+' · busgate '+g.num:'gate '+g.num}, ${pax} passagiers`);
+}
+function wpReached(pl){
+  pl.wp.shift();pl.rev=false;
+  if(pl.state=='arrive'&&!pl.landed){pl.landed=true;if(pl.inc)startInc(pl);}
+  if(pl.state=='depart'&&pl.wp.length==1&&pl.g){pl.g.plane=null;pl.g=null;}
 }
 function updPlane(pl,dt){
-  if(!pl.wp.length){if(pl.state=='arrive'){pl.state='parked';pl.ang=0;wearRunway(.7*(pl.sc||1));if(S.runway<35&&S.min-(S.lastBump||-999)>120){S.lastBump=S.min;S.rep-=.5;toast('😬 Hobbelige landing: de landingsbaan is versleten');}if(!pl.f.fueled)S.fuelQ.push(pl.f);}else if(pl.state=='depart')pl.done=true;return;}
+  if(pl.hold)return;
+  if(!pl.wp.length){
+    if(pl.state=='arrive'){pl.state='parked';if(!pl.f.stand)pl.ang=0;
+      if(pl.rw==1){wearRunway(.7*(pl.sc||1));if(S.runway<35&&S.min-(S.lastBump||-999)>120){S.lastBump=S.min;S.rep-=.5;toast('😬 Hobbelige landing: de landingsbaan is versleten');}}
+      for(const k of pl.f.need)if(k!='bus'&&!pl.f.done[k])S.jobs.push({f:pl.f,k});}
+    else if(pl.state=='depart')pl.done=true;
+    return;}
   const[tx,ty,sp]=pl.wp[0],dx=tx-pl.x,dy=ty-pl.y,d=Math.hypot(dx,dy),st=sp*dt;
-  if(d<1e-3){pl.wp.shift();pl.rev=false;return;}
-  if(!pl.rev)pl.ang=Math.atan2(dy,dx);
-  if(d<=st){pl.x=tx;pl.y=ty;pl.wp.shift();if(pl.rev&&pl.wp.length)pl.rev=false;if(pl.state=='depart'&&pl.wp.length==1&&pl.g){pl.g.plane=null;pl.g=null;}}else{pl.x+=dx/d*st;pl.y+=dy/d*st;}
+  if(d<1e-3){wpReached(pl);return;}
+  if(!pl.rev){let da=Math.atan2(dy,dx)-pl.ang;da=Math.atan2(Math.sin(da),Math.cos(da));pl.ang+=da*Math.min(1,dt*(sp>5?20:6));}
+  if(d<=st){pl.x=tx;pl.y=ty;wpReached(pl);}else{pl.x+=dx/d*st;pl.y+=dy/d*st;}
   if(pl.state=='depart'&&pl.wp.length==0)pl.done=true;
   if(pl.fade&&pl.y>pl.fadeY)pl.alpha=Math.max(0,pl.alpha-dt*.5);
 }
+const missing=f=>f.need.filter(k=>!f.done[k]);
 function updFlights(){
   for(const f of S.flights){
     if(f.state=='gone')continue;
     while(f.spawned<f.pax&&S.min>=f.created+f.spawned*(90/f.pax)){f.spawned++;spawnPax(f);}
     if(f.state=='open'&&S.min>=f.dep-40&&f.plane.state=='parked'){
-      f.state='boarding';
+      f.state='boarding';if(f.stand&&!f.done.bus)S.jobs.push({f,k:'bus'});
       for(const p of S.pax)if(p.f===f&&p.stage==2&&!p.gone&&(p.state=='idle'||p.state=='sit'||(p.state=='walk'&&!p.target))){detach(p);p.state='idle';decide(p);}
     }
-    if(S.min>=f.dep&&!f.fueled&&f.plane.state=='parked'&&(f.delays||0)<3){
+    if(S.min>=f.dep&&f.plane.state!='parked'){f.dep+=10;continue;}
+    const miss=missing(f);
+    if(S.min>=f.dep&&miss.length&&(f.delays||0)<3){
       f.dep+=15;f.delays=(f.delays||0)+1;S.rep-=1;S.stats.delays=(S.stats.delays||0)+1;
       for(let k=0;k<2;k++){S.reviews.push({s:2,c:'delay'});if(S.reviews.length>30)S.reviews.shift();}
-      if(!S.fuelQ.includes(f)&&!S.trucks.some(t=>t.f===f))S.fuelQ.push(f);
-      toast(`⛽ ${f.code} vertraagd: niet getankt!`+(S.trucks.length?' Koop extra tankwagens.':' Je hebt geen tankwagen!'));continue;
+      if(f.c){S.money-=f.c.pen;f.c.sat-=8;satCheck(f.c);}
+      for(const k of miss)if(!S.jobs.some(j=>j.f===f&&j.k==k)&&!S.veh.some(v=>v.f===f&&v.k==k))S.jobs.push({f,k});
+      const none=miss.filter(k=>!S.veh.some(v=>v.k==k&&v.state!='broken'));
+      toast(`⏰ ${f.code} vertraagd: wacht op ${miss.map(k=>VK[k].e+' '+VK[k].n.toLowerCase()).join(', ')}`+(none.length?` — je hebt geen ${VK[none[0]].n.toLowerCase()}!`:freeDrivers()<=0?' — te weinig chauffeurs!':' — koop extra voertuigen'));continue;
     }
     if(S.min>=f.dep){
-      if(!f.fueled)S.rep-=2;wearRunway(.5*(f.plane.sc||1));
-      f.state='gone';const g=f.gate;g.flight=null;
-      const pl=f.plane,gy=g.y+1.5;pl.state='depart';pl.g=g;pl.fade=true;pl.rev=true;pl.fadeY=gy+12;pl.wp=[[-2.4,gy,1.4],[-5.3,gy,2.2],[-5.3,gy+26,8]];S.fuelQ=S.fuelQ.filter(x=>x!==f);
+      if(miss.length)S.rep-=2;if(f.plane.rw==1)wearRunway(.5*(f.plane.sc||1));
+      f.state='gone';f.gate.flight=null;if(f.stand)f.stand.flight=null;
+      departRoute(f.plane,f);S.jobs=S.jobs.filter(j=>j.f!==f);
       for(const p of S.pax)if(p.f===f&&!p.gone&&p.state!='leaving'){f.missed++;p.cmp.add('missed');review(p,true);leave(p);}
       S.stats.missed+=f.missed;
+      if(f.c&&!f.delays){f.c.sat+=3;satCheck(f.c);}
       toast(`🛫 ${f.code} naar ${f.dest} vertrekt: ${f.boarded}/${f.pax} aan boord`+(f.missed?` • ${f.missed} gemist 😞`:' 👍'));
     }
   }
   const gone=S.flights.filter(f=>f.state=='gone');if(gone.length>6)S.flights.splice(S.flights.indexOf(gone[0]),1);
 }
 
-/* ================= runway & fuel ================= */
+/* ================= incidents ================= */
+function startInc(pl){
+  pl.hold=true;const fire=hasFire();
+  S.inc.push({pl,rw:pl.rw,until:S.min+(fire?240:60),truck:null});S.rep-=fire?1:5;S.stats.inc=(S.stats.inc||0)+1;
+  toast(fire?`🔥 Motorbrand bij ${pl.f.code}! De brandweer rukt uit — baan ${pl.rw} even dicht`:`🔥 Motorbrand bij ${pl.f.code}! Geen brandweer: baan ${pl.rw} een uur dicht. Bouw een 🚒 brandweerkazerne!`);
+}
+function endInc(i){i.pl.hold=false;S.inc.splice(S.inc.indexOf(i),1);toast(`✅ Brand bij ${i.pl.f.code} geblust — baan ${i.rw} weer open`);}
+
+/* ================= runway ================= */
 function wearRunway(n){S.runway=Math.max(0,S.runway-n*(S.rwLv>1?.5:1));}
 const repairCost=()=>Math.round((100-S.runway)*45/10)*10;
 function repairRunway(){if(S.min<S.repairEnd){toast('🚧 Onderhoud is al bezig');return;}if(S.runway>97){toast('✨ De landingsbaan is in topvorm');return;}const c=repairCost();if(S.money<c){toast('💸 Niet genoeg geld');return;}
-  S.money-=c;S.repairStart=S.min;S.repairFrom=S.runway;S.repairEnd=S.min+45;toast('🚧 Onderhoud gestart — 45 min geen landingen');saveGame();}
+  S.money-=c;S.repairStart=S.min;S.repairFrom=S.runway;S.repairEnd=S.min+45;toast('🚧 Onderhoud gestart — 45 min geen landingen op baan 1');saveGame();}
 function reinforceRunway(){if(S.rwLv>1)return;if(S.level<RW_LV){toast(`🔒 Vanaf level ${RW_LV}`);return;}if(S.money<15000){toast('💸 €15.000 nodig');return;}S.money-=15000;S.rwLv=2;S.runway=100;addXP(10);toast('🛬 Landingsbaan versterkt: slijt nu half zo snel!');saveGame();}
-const TRUCK_C=1500,TRUCK_SAL=60;
-function buyTruck(){if(S.money<TRUCK_C){toast('💸 Niet genoeg geld');return;}S.money-=TRUCK_C;const dy=DEPOT_Y[0];S.trucks.push({x:-1.2,y:dy,state:'idle',wp:[],dir:[0,1]});}
-function sellTruck(){const i=S.trucks.findIndex(t=>t.state=='idle');if(i<0){toast('⛽ Alle tankwagens zijn bezig');return;}S.trucks.splice(i,1);S.money+=TRUCK_C/2;}
+
+/* ================= ground handling vehicles ================= */
+const VK={
+  fuel:{n:'Tankwagen',e:'⛽',c:1500,t:6,lv:1,col:'#ecf0f1',top:'#e74c3c',d:'Tankt elk vliegtuig'},
+  bag:{n:'Bagagetrein',e:'🧳',c:1200,t:7,lv:1,col:'#e67e22',top:'#5d6d7e',d:'Lost en laadt de bagage'},
+  cater:{n:'Cateringwagen',e:'🍱',c:1800,t:5,lv:3,col:'#f4f6f7',top:'#2980b9',d:'Brengt maaltijden aan boord'},
+  bus:{n:'Platformbus',e:'🚌',c:2500,t:3,lv:4,col:'#2471a3',top:'#d6eaf8',d:'Rijdt reizigers van de busgate naar een vliegtuigparking'},
+  fire:{n:'Brandweerwagen',e:'🚒',c:0,t:8,lv:5,col:'#c0392b',top:'#f4d03f'}};
+const VOFF={fuel:[-.45,.95],bag:[-1.0,-.85],cater:[.7,-.8],bus:[.9,1.05]};
+const VUPK=30,DRV_SAL=90,FIRE_SAL=250,HANGAR_RENT=450,TOW_C=800;
 function nearDepot(y){const ds=DEPOT_Y.filter((d,i)=>i==0||S.terms[i]);return ds.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);}
-function updTrucks(dt){
-  for(const t of S.trucks){
-    if(t.wp.length){const[tx,ty]=t.wp[0],dx=tx-t.x,dy=ty-t.y,d=Math.hypot(dx,dy),st=3.5*dt;if(d>1e-3)t.dir=[dx/d,dy/d];
-      if(d<=st){t.x=tx;t.y=ty;t.wp.shift();if(!t.wp.length){if(t.state=='go'){if(!t.f||t.f.state=='gone'){t.state='back';}else{t.state='fuel';t.timer=6;}}else if(t.state=='back')t.state='idle';}}else{t.x+=dx/d*st;t.y+=dy/d*st;}
-      if(t.state=='back'&&!t.wp.length){const dp=nearDepot(t.y);t.wp=[[-1.45,t.y],[-1.45,dp],[-1.2,dp]];}
-      continue;}
-    if(t.state=='fuel'){t.timer-=dt;if(t.timer<=0||!t.f||t.f.state=='gone'){if(t.f&&t.f.state!='gone'){t.f.fueled=true;floatTxt(t.x,t.y,30,'⛽ getankt','#f4c84a');}t.f=null;t.state='back';const dp=nearDepot(t.y);t.wp=[[-1.45,t.y],[-1.45,dp],[-1.2,dp]];}continue;}
-    if(t.state=='back'){const dp=nearDepot(t.y);t.wp=[[-1.45,t.y],[-1.45,dp],[-1.2,dp]];continue;}
-    S.fuelQ=S.fuelQ.filter(f=>f.state!='gone'&&!f.fueled);
-    if(S.fuelQ.length){const f=S.fuelQ.shift(),pl=f.plane,sc=pl.sc||1;t.f=f;t.state='go';const gy=f.gate.y+1.5,tx=pl.x-.45*sc,ty=gy+.95*sc;t.wp=[[-1.45,t.y],[-1.45,ty],[tx,ty]];}
-  }
+function newVeh(k,home,cond){const hx=home?home.x+home.sz/2:-1.2,hy=home?home.y+home.sz/2:DEPOT_Y[0]+rnd(-.6,.6);return{k,x:hx,y:hy,state:'idle',wp:[],dir:[0,1],cond:cond===undefined?100:cond,home:home||null,f:null};}
+const vBusy=v=>v.k!='fire'&&v.state!='idle'&&v.state!='broken';
+const freeDrivers=()=>S.drivers-S.veh.filter(vBusy).length;
+function buyVeh(k){const t=VK[k];if(S.level<t.lv){toast(`🔒 ${t.n} vanaf level ${t.lv}`);return;}if(S.money<t.c){toast('💸 Niet genoeg geld');return;}S.money-=t.c;S.veh.push(newVeh(k));if(freeDrivers()<1)toast('👷 Vergeet geen extra chauffeur aan te nemen!');}
+function sellVeh(k){const i=S.veh.findIndex(v=>v.k==k&&(v.state=='idle'||v.state=='broken'));if(i<0){toast(`${VK[k].e} Alle ${VK[k].n.toLowerCase()}s zijn onderweg`);return;}S.veh.splice(i,1);S.money+=VK[k].c/2;}
+function towAll(){const b=S.veh.filter(v=>v.state=='broken');if(!b.length)return;const c=b.length*TOW_C;if(S.money<c){toast('💸 Niet genoeg geld');return;}
+  S.money-=c;for(const v of b){const dp=nearDepot(v.y);v.cond=100;v.state='idle';v.x=-1.2;v.y=dp;v.wp=[];v.trip=null;}toast(`🔧 ${b.length} voertuig(en) hersteld`);}
+function vTarget(pl,k){const[u,w]=VOFF[k],s=pl.sc||1,c=Math.cos(pl.ang),n=Math.sin(pl.ang);return[pl.x+(u*c-w*n)*s,pl.y+(u*n+w*c)*s];}
+function pathTo(v,tx,ty,st){
+  const wp=[[LANE,v.y]],p=st&&standPath(st,1);
+  if(tx>-2.7)wp.push([LANE,ty],[tx,ty]);
+  else if(p){const ey=p[0][1]+.5;wp.push([LANE,ey],[-8.6,ey],...p.map(([x,y])=>[x+.5,y+.5]),[tx,ty]);}
+  else wp.push([LANE,ty],[-8.6,ty],[tx,ty]);
+  v.trip=wp;v.wp=wp.slice();
 }
+function goHome(v){
+  if(v.k=='fire'){v.wp=[[v.home.x+1.5,v.home.y+1.5]];v.state='back';return;}
+  const dp=nearDepot(v.y);v.wp=[...(v.trip||[]).slice(0,-1).reverse(),[LANE,dp],[-1.2,dp+rnd(-.6,.6)]];v.trip=null;v.state='back';
+}
+function vArrive(v){
+  if(v.state=='back'){v.state='idle';return;}
+  if(v.state=='garage'){v.state='fix';v.timer=8;return;}
+  if(v.state!='go')return;
+  if(v.k=='fire'){v.state='work';v.timer=VK.fire.t;return;}
+  const f=v.f;if(!f||f.state=='gone'){v.f=null;goHome(v);return;}
+  if(v.k=='bus'&&v.phase=='pick'){v.state='load';v.timer=4;return;}
+  v.state='work';v.timer=VK[v.k].t;
+}
+function vDone(v){
+  if(v.state=='fix'){const c=Math.round((100-v.cond)*6);S.money-=c;v.cond=100;floatTxt(v.x,v.y,30,'🔧 -€'+c,'#ff8a8a');goHome(v);return;}
+  if(v.k=='fire'){const i=v.inc;v.inc=null;if(i&&S.inc.includes(i))endInc(i);goHome(v);return;}
+  const f=v.f;
+  if(v.state=='load'){if(!f||f.state=='gone'){v.f=null;goHome(v);return;}v.phase='drop';v.state='go';const[tx,ty]=vTarget(f.plane,'bus');pathTo(v,tx,ty,f.stand);return;}
+  if(f&&f.state!='gone'){f.done[v.k]=true;floatTxt(v.x,v.y,30,VK[v.k].e+' klaar','#f4c84a');}
+  v.f=null;v.cond=Math.max(0,v.cond-rnd(3,6));
+  if(v.cond<=0){v.state='broken';v.brokeAt=S.min;toast(`💥 Een ${VK[v.k].n.toLowerCase()} is kapot!`+(garage()?' De garage sleept hem weg.':' Herstel hem bij 🚚 Afhandeling of bouw een 🔧 garage.'));return;}
+  goHome(v);
+}
+function updVeh(v,dt){
+  if(v.state=='broken')return;
+  if(v.wp.length){const[tx,ty]=v.wp[0],dx=tx-v.x,dy=ty-v.y,d=Math.hypot(dx,dy),st=(v.k=='fire'?5:3.5)*(v.cond<25?.55:1)*dt;if(d>1e-3)v.dir=[dx/d,dy/d];
+    if(d<=st){v.x=tx;v.y=ty;v.wp.shift();if(!v.wp.length)vArrive(v);}else{v.x+=dx/d*st;v.y+=dy/d*st;}return;}
+  if(v.state=='work'||v.state=='load'||v.state=='fix'){v.timer-=dt;if(v.timer<=0)vDone(v);return;}
+  if(v.state!='idle')return;
+  if(v.k=='fire'){const i=S.inc.find(i=>!i.truck);if(i){i.truck=v;v.inc=i;v.state='go';v.wp=[[i.pl.x+.8,i.pl.y+1.4]];}return;}
+  if(freeDrivers()<=0)return;
+  const gar=garage();
+  if(gar&&v.cond<45){v.state='garage';pathTo(v,gar.x+1.5,gar.y+1.5);return;}
+  S.jobs=S.jobs.filter(j=>j.f.state!='gone'&&!j.f.done[j.k]);
+  const ji=S.jobs.findIndex(j=>j.k==v.k&&(j.k!='bus'||j.f.state=='boarding')&&j.f.plane.state=='parked');if(ji<0)return;
+  const f=S.jobs.splice(ji,1)[0].f;v.f=f;v.state='go';
+  if(v.k=='bus'){v.phase='pick';pathTo(v,LANE,f.gate.y+1.5);}
+  else{const[tx,ty]=vTarget(f.plane,v.k);pathTo(v,tx,ty,f.stand);}
+}
+
+/* ================= airlines & contracts ================= */
+const AIRL=[{n:'Belgavia',c:'BV',col:'#c0392b'},{n:'SkyBudget',c:'SB',col:'#f1c40f'},{n:'Noordwind',c:'NW',col:'#2980b9'},{n:'Iberwing',c:'IW',col:'#e67e22'},
+  {n:'Alpenflug',c:'AF',col:'#16a085'},{n:'Sahara Sky',c:'SY',col:'#d35400'},{n:'Atlantica',c:'AT',col:'#34495e'},{n:'Orient Wings',c:'OW',col:'#8e44ad'}];
+function genOffer(){
+  const pt=pick(Object.keys(PT).filter(k=>S.level>=PT[k].lv)),t=PT[pt],hang=S.level>=6&&Math.random()<.3;
+  const fee=(pt=='S'?ri(5,10):pt=='M'?ri(8,14):ri(12,20))+(hang?6:0);
+  return{id:S.oid++,al:ri(0,AIRL.length-1),no:ri(100,999),dest:pick(DESTS),pt,dep:ri(14,44)*30,fee,bonus:Math.round(fee*t.pax*4/50)*50,pen:t.pax*8,
+    rep:Math.min(80,ri(20,40)+(pt=='M'?10:pt=='L'?25:0)),hang,sat:100,last:-1};
+}
+function refreshOffers(){S.offers=S.offers.slice(-2);while(S.offers.length<4)S.offers.push(genOffer());}
+function signOffer(id){
+  const i=S.offers.findIndex(o=>o.id==id);if(i<0)return;const o=S.offers[i],al=AIRL[o.al];
+  if(S.rep<o.rep){toast(`⭐ ${al.n} wil minstens ${o.rep}% reputatie (je hebt ${Math.round(S.rep)}%)`);return;}
+  if(o.pt=='L'&&!hasFire()){toast('🚒 Voor grote vliegtuigen heb je een brandweerkazerne nodig (🛬 Platform)');return;}
+  if(o.hang&&S.objs.filter(x=>x.type=='hangar').length<=S.contracts.filter(c=>c.hang).length){toast(`🏗️ ${al.n} wil een eigen hangar — bouw er een bij 🛬 Platform`);return;}
+  const day=Math.floor(S.min/1440);S.offers.splice(i,1);o.last=S.min%1440>=o.dep-150?day:-1;S.contracts.push(o);S.money+=o.bonus;addXP(5);
+  toast(`🤝 Contract met ${al.n}: elke dag ${al.c}${o.no} naar ${o.dest} om ${fmtT(o.dep)} · bonus +${eur(o.bonus)}`);
+  const big=Math.max(0,...S.objs.filter(isGate).map(g=>GATECAP[g.lv||1]));
+  if(big<PT[o.pt].pax)setTimeout(()=>toast(`⚠️ Je hebt nog geen gate ${'★'.repeat(PT[o.pt].sc)} voor dit toestel — upgrade er een!`),1200);
+  saveGame();
+}
+function endContract(id){const i=S.contracts.findIndex(c=>c.id==id);if(i<0)return;const c=S.contracts[i];S.contracts.splice(i,1);S.rep-=3;toast(`📄 Contract met ${AIRL[c.al].n} opgezegd (−3% reputatie)`);}
+function moveContract(id,d){const c=S.contracts.find(c=>c.id==id);if(c)c.dep=Math.max(360,Math.min(1380,c.dep+d));}
+function satCheck(c){c.sat=Math.max(0,Math.min(100,c.sat));if(c.sat<=0&&S.contracts.includes(c)){S.contracts.splice(S.contracts.indexOf(c),1);S.rep-=4;toast(`💔 ${AIRL[c.al].n} zegt het contract op: te veel problemen`);}}
+function contractMiss(c,why){S.money-=c.pen*2;c.sat-=25;S.rep-=2;S.stats.div=(S.stats.div||0)+1;toast(`❌ ${AIRL[c.al].c}${c.no} (${AIRL[c.al].n}) kon niet landen: ${why}. Boete ${eur(c.pen*2)}`);satCheck(c);}
+function reservedSoon(){const tod=S.min%1440,day=Math.floor(S.min/1440);return S.contracts.filter(c=>c.last!=day&&c.dep-150>=tod&&c.dep-150-tod<170).length;}
+function spawnContracts(){const tod=S.min%1440,day=Math.floor(S.min/1440);for(const c of S.contracts.slice())if(c.last!=day&&tod>=c.dep-150){c.last=day;if(tod<c.dep-20)newFlight(c);}}
+function peakLoad(){let m=0;for(const a of S.contracts){const n=S.contracts.filter(b=>Math.abs(b.dep-a.dep)<155).length;if(n>m)m=n;}return m;}
 
 /* ================= goals, alerts ================= */
 const GOALS=[
@@ -489,17 +687,32 @@ const GOALS=[
   {t:'300 passagiers aan boord',r:3000,ok:()=>S.stats.boarded>=300},
   {t:'Drie gates',r:3000,ok:()=>S.objs.filter(o=>o.type=='gate').length>=3},
   {t:'1000 passagiers aan boord',r:6000,ok:()=>S.stats.boarded>=1000},
-  {t:'Koop extra grond',r:1000,ok:()=>S.plots.some(Boolean)}
+  {t:'Koop extra grond',r:1000,ok:()=>S.plots.some(Boolean)},
+  {t:'Teken een contract met een airline',r:1000,ok:()=>S.contracts.length>0},
+  {t:'Bouw een garage voor je voertuigen',r:800,ok:()=>S.objs.some(o=>o.type=='garage')},
+  {t:'Eerste vlucht vanaf een vliegtuigparking',r:2000,ok:()=>S.flights.some(f=>f.stand&&f.state=='gone')},
+  {t:'Bouw een brandweerkazerne',r:1500,ok:()=>hasFire()},
+  {t:'Vijf airline-contracten tegelijk',r:4000,ok:()=>S.contracts.length>=5},
+  {t:'Open landingsbaan 2',r:10000,ok:()=>S.rw2}
 ];
 function checkGoals(){GOALS.forEach((g,i)=>{if(!S.goals[i]&&g.ok()){S.goals[i]=true;S.money+=g.r;addXP(Math.round(g.r/100));toast(`🎯 Doel gehaald: ${g.t} (+€${g.r})`);}});}
 function alerts(){
   const a=[];
   for(const o of S.objs){const t=TYPES[o.type];if(t.staff&&!o.staff)a.push(`${t.e} ${t.n} heeft geen ${STAFF[t.staff].n.toLowerCase()}`);if(o.type=='toilet'&&o.dirt>6)a.push('🤢 Vieze toiletten — schoonmaker nodig');}
-  if(!S.objs.some(o=>o.type=='gate'))a.push('🛫 Je hebt geen gate');
+  if(!S.objs.some(isGate))a.push('🛫 Je hebt geen gate');
   const lit=S.litter.flat().reduce((x,y)=>x+y,0);if(lit>8)a.push('🗑️ Veel afval — meer schoonmakers of vuilbakken');
   if(S.money<0)a.push('💸 Je staat in het rood');
   if(S.runway<50)a.push(`🛬 Landingsbaan versleten (${Math.round(S.runway)}%) — plan onderhoud`);
-  if(S.fuelQ.length>0&&!S.trucks.some(t=>t.state=='idle'))a.push(`⛽ ${S.fuelQ.length} vliegtuig(en) wachten op brandstof`);
+  for(const i of S.inc)a.push(`🔥 Incident op baan ${i.rw}${i.truck?' — brandweer is bezig':''}`);
+  for(const k of['fuel','bag','cater','bus']){const w=S.jobs.filter(j=>j.k==k).length;if(w&&!S.veh.some(v=>v.k==k&&v.state=='idle'))a.push(`${VK[k].e} ${w} vliegtuig(en) wachten op een ${VK[k].n.toLowerCase()}`);}
+  if(S.jobs.length&&freeDrivers()<=0)a.push('👷 Te weinig chauffeurs: voertuigen staan stil');
+  {const br=S.veh.filter(v=>v.state=='broken').length;if(br)a.push(`💥 ${br} voertuig(en) kapot`);}
+  for(const o of S.objs)if(o.type=='stand'&&!standOK(o))a.push(`🅿️ Parking P${o.num} is niet met een taxibaan verbonden`);
+  if(S.objs.some(o=>o.type=='stand')&&!S.objs.some(o=>o.type=='busgate'))a.push('🚌 Bouw een busgate in de terminal voor je vliegtuigparkings');
+  if(S.objs.some(o=>o.type=='busgate')&&!S.veh.some(v=>v.k=='bus'))a.push('🚌 Koop een platformbus voor je busgate');
+  if(S.rw2&&!connPath())a.push('🛬 Baan 2 is niet verbonden: leg een taxibaan naar baan 1');
+  {const big=Math.max(0,...S.objs.filter(isGate).map(g=>GATECAP[g.lv||1]));for(const c of S.contracts)if(PT[c.pt].pax>big){a.push(`🤝 ${AIRL[c.al].n} vliegt met ${PT[c.pt].adj} toestellen: je hebt een gate ${'★'.repeat(PT[c.pt].sc)} nodig`);break;}
+   const cap=placesTotal(),pk=peakLoad();if(pk>cap)a.push(`🤝 Op het drukste moment heb je ${pk} vliegtuigplaatsen nodig, je hebt er ${cap}`);}
   return a;
 }
 
@@ -507,12 +720,17 @@ function alerts(){
 function step(dt){
   S.min+=dt*1.5;
   const day=Math.floor(S.min/1440);
-  if(day!=S.day){S.day=day;let sal=S.trucks.length*TRUCK_SAL;for(const s of S.staff)sal+=STAFF[s.kind].sal;const int=Math.round(S.loan*.01),upk=S.objs.reduce((a,o)=>a+Math.round(TYPES[o.type].c*.02*(o.lv||1)),0);S.money-=sal+int+upk;toast(`🌙 Dag ${day+1} — lonen €${sal} + onderhoud €${upk}`+(int?` + rente €${int}`:''));}
-  if(S.min>=S.nextFlight){const tod=S.min%1440;if(tod>=300&&tod<1380){newFlight();S.nextFlight=S.min+Math.max(22,80-S.rep*.45-(S.level-1)*3)*rnd(.7,1.3);}else S.nextFlight=S.min+20;}
+  if(day!=S.day){S.day=day;let sal=S.drivers*DRV_SAL+S.veh.filter(v=>v.k!='fire').length*VUPK+S.objs.filter(o=>o.type=='fire').length*FIRE_SAL;for(const s of S.staff)sal+=STAFF[s.kind].sal;
+    const int=Math.round(S.loan*.01),upk=S.objs.reduce((a,o)=>a+Math.round(TYPES[o.type].c*.02*(o.lv||1)),0),rent=S.objs.filter(o=>o.type=='hangar').length*HANGAR_RENT;
+    S.money+=rent-sal-int-upk;refreshOffers();toast(`🌙 Dag ${day+1} — lonen €${sal} + onderhoud €${upk}`+(int?` + rente €${int}`:'')+(rent?` · hangarhuur +€${rent}`:'')+' · 📨 nieuwe airline-aanbiedingen');}
+  spawnContracts();
+  if(S.min>=S.nextFlight){const tod=S.min%1440;if(tod>=300&&tod<1380){newFlight();S.nextFlight=S.min+Math.max(22,80-S.rep*.45-(S.level-1)*3)*rnd(.7,1.3)*(1+S.contracts.length*.12);}else S.nextFlight=S.min+20;}
+  for(const i of S.inc.slice())if(S.min>=i.until)endInc(i);
   if(S.repairEnd&&S.min<S.repairEnd)S.runway=S.repairFrom+(100-S.repairFrom)*Math.min(1,(S.min-S.repairStart)/45);else if(S.repairEnd&&S.min>=S.repairEnd){S.runway=100;S.repairEnd=0;toast('✅ Onderhoud landingsbaan klaar');}
   updFlights();
   for(const pl of S.planes)updPlane(pl,dt);
-  updTrucks(dt);
+  for(const v of S.veh)updVeh(v,dt);
+  {const gar=garage();if(gar)for(const v of S.veh)if(v.state=='broken'&&S.min-(v.brokeAt||0)>30){v.x=gar.x+1.5;v.y=gar.y+1.5;v.wp=[];v.trip=[[LANE,v.y],[-8.6,v.y],[v.x,v.y]];v.state='fix';v.timer=8;}}
   S.planes=S.planes.filter(p=>!p.done&&p.alpha>0);
   for(const o of S.objs)o.incoming=0;
   for(const p of S.pax)if(p.state=='walk'&&p.target)p.target.incoming++;
@@ -533,21 +751,27 @@ function step(dt){
 
 /* ================= init ================= */
 function init(sv){
-  S={terms:[true,false,false],runway:100,rwLv:1,repairEnd:0,trucks:[],fuelQ:[],xp:0,level:1,plots:[false,false,false,false],money:10000,rep:50,min:360,day:0,speed:1,objs:[],pax:[],staff:[],flights:[],planes:[],floats:[],reviews:[],goals:[],loan:0,nextFlight:368,nid:1,gateNo:0,fc:0,lastAngry:-999,over:false,stats:{boarded:0,missed:0,angry:0,shop:0},ghost:null};
+  S={terms:[true,false,false],runway:100,rwLv:1,repairEnd:0,veh:[],jobs:[],inc:[],drivers:0,contracts:[],offers:[],oid:1,rw2:false,standNo:0,airV:1,xp:0,level:1,plots:[false,false,false,false],money:10000,rep:50,min:360,day:0,speed:1,objs:[],pax:[],staff:[],flights:[],planes:[],floats:[],reviews:[],goals:[],loan:0,nextFlight:368,nid:1,gateNo:0,fc:0,lastAngry:-999,over:false,stats:{boarded:0,missed:0,angry:0,shop:0},ghost:null};
   S.grid=[...Array(GH)].map(()=>Array(GW).fill(null));
   S.litter=[...Array(GH)].map(()=>Array(GW).fill(0));
+  S.ag=[...Array(GH)].map(()=>Array(ZW).fill(null));
+  if(sv&&sv.rw2)setRw2();
   if(sv&&sv.v==1){sv.objs.forEach(o=>o.y+=8);if(sv.litter)sv.litter=[...Array(8)].map(()=>Array(GW).fill(0)).concat(sv.litter,[...Array(8)].map(()=>Array(GW).fill(0)));}
   if(sv&&sv.plots)S.plots=sv.plots.slice();
   if(sv&&sv.terms)S.terms=sv.terms.slice();
   setOwned();recompute();
   if(sv){
-    for(const k of['money','rep','min','day','reviews','goals','loan','gateNo','fc','xp','level','runway','rwLv'])if(sv[k]!==undefined)S[k]=sv[k];
+    for(const k of['money','rep','min','day','reviews','goals','loan','gateNo','fc','xp','level','runway','rwLv','contracts','offers','oid'])if(sv[k]!==undefined)S[k]=sv[k];
     Object.assign(S.stats,sv.stats||{});if(sv.litter)sv.litter.forEach((r,y)=>{if(y<GH&&Array.isArray(r))r.forEach((v,x)=>{if(x<GW)S.litter[y][x]=+v||0;});});
     for(const o of sv.objs||[]){if(place(o.t,o.x,o.y,o.d,true)){const n=S.objs[S.objs.length-1];if(o.n)n.num=o.n;n.dirt=o.dirt||0;n.lv=o.lv||1;}}
     if(sv.xp===undefined){S.xp=S.stats.boarded;while(S.level<MAXLV&&S.xp>=XPN(S.level+1))S.level++;}
-    S.gateNo=Math.max(S.gateNo,sv.gateNo||0);
+    S.gateNo=Math.max(S.gateNo,sv.gateNo||0);S.standNo=Math.max(S.standNo,sv.standNo||0);
     for(const k of sv.staff||[])hire(k);
-    for(let i=0;i<(sv.trucks===undefined?1:sv.trucks);i++)S.trucks.push({x:-1.2,y:DEPOT_Y[0]+i*.01,state:'idle',wp:[],dir:[0,1]});
+    if(sv.veh)for(const v of sv.veh)S.veh.push(newVeh(v.k,null,v.c));
+    else{for(let i=0;i<(sv.trucks===undefined?1:sv.trucks);i++)S.veh.push(newVeh('fuel'));S.veh.push(newVeh('bag'));if(S.level>=VK.cater.lv)S.veh.push(newVeh('cater'));}
+    S.drivers=sv.drivers!==undefined?sv.drivers:S.veh.filter(v=>v.k!='fire').length;
+    for(const c of S.contracts)c.last=Math.floor(S.min/1440)-(S.min%1440>=c.dep-150?0:1);
+    if(!S.offers.length)refreshOffers();
     S.nextFlight=S.min+8;
   }else{
   place('checkin',15,18,0,true);
@@ -557,21 +781,22 @@ function init(sv){
   place('bench',8,12,0,true);place('bench',8,14,0,true);
   place('plant',17,13,0,true);place('plant',17,19,0,true);
   hire('agent');hire('security');
-  S.trucks.push({x:-1.2,y:DEPOT_Y[0],state:'idle',wp:[],dir:[0,1]});
+  S.veh.push(newVeh('fuel'),newVeh('bag'));S.drivers=2;refreshOffers();
   }
   // scenery
   S.trees=[];let tries=0;
-  while(S.trees.length<70&&tries++<3000){const x=rnd(-16,GW+16),y=rnd(-12,GH+12);
-    if(x>-8.2&&x<3.3)continue;if(x>GW-.3&&x<GW+4.2)continue;if(x>=3&&x<=GW&&y>-1.2&&y<GH+1.2)continue;if(x>GW+4.2&&x<GW+11&&y>PY0-.5&&y<PY0+11.5)continue;
+  while(S.trees.length<90&&tries++<4000){const x=rnd(-34,GW+16),y=rnd(-12,GH+12);
+    if(x>ZX0-1.6&&x<3.3)continue;if(x>GW-.3&&x<GW+4.2)continue;if(x>=3&&x<=GW&&y>-1.2&&y<GH+1.2)continue;if(x>GW+4.2&&x<GW+11&&y>PY0-.5&&y<PY0+11.5)continue;
     S.trees.push({x,y,s:rnd(.8,1.3)});}
   S.parked=[];for(let r=0;r<3;r++)for(let i=0;i<8;i++)if(Math.random()<.7)S.parked.push({x:GW+5.2+r*2,y:PY0+1.4+i,col:pick(['#ecf0f1','#2d3436','#27ae60','#2980b9','#f1c40f','#c0392b','#16a085','#7f8c8d'])});
   S.cracks=[...Array(40)].map(()=>({y:rnd(-8,GH+4),x:rnd(-7.4,-3.3),l:rnd(.3,.9),a:rnd(-.6,.6)}));
   S.cars=[];for(let i=0;i<8;i++)S.cars.push({x:i%2?GW+2.2:GW+3.1,y:rnd(-14,GH+14),v:i%2?-1:1,sp:rnd(2,3.2),col:pick(['#ecf0f1','#2d3436','#e74c3c','#2980b9','#f1c40f','#27ae60'])});
 }
 const SAVE_KEY='luchthaven_tycoon_v1';
-function saveGame(){if(!S||S.over)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify({v:2,plots:S.plots,money:S.money,rep:S.rep,min:S.min,day:S.day,stats:S.stats,reviews:S.reviews,goals:S.goals,loan:S.loan,gateNo:S.gateNo,fc:S.fc,litter:S.litter,
-  objs:S.objs.map(o=>({t:o.type,x:o.x,y:o.y,d:o.dir,n:o.num,dirt:o.dirt,lv:o.lv})),xp:S.xp,level:S.level,terms:S.terms,runway:S.runway,rwLv:S.rwLv,trucks:S.trucks.length,staff:S.staff.map(s=>s.kind)}));S.savedAt=Date.now();}catch(e){}}
-function loadSave(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));return s&&(s.v==1||s.v==2)?s:null;}catch(e){return null;}}
+function saveGame(){if(!S||S.over)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify({v:3,plots:S.plots,money:S.money,rep:S.rep,min:S.min,day:S.day,stats:S.stats,reviews:S.reviews,goals:S.goals,loan:S.loan,gateNo:S.gateNo,fc:S.fc,litter:S.litter,
+  objs:S.objs.map(o=>({t:o.type,x:o.x,y:o.y,d:o.dir,n:o.num,dirt:o.dirt,lv:o.lv})),xp:S.xp,level:S.level,terms:S.terms,runway:S.runway,rwLv:S.rwLv,staff:S.staff.map(s=>s.kind),
+  veh:S.veh.filter(v=>v.k!='fire').map(v=>({k:v.k,c:Math.round(v.cond)})),drivers:S.drivers,contracts:S.contracts,offers:S.offers,oid:S.oid,rw2:S.rw2,standNo:S.standNo}));S.savedAt=Date.now();}catch(e){}}
+function loadSave(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));return s&&s.v>=1&&s.v<=3?s:null;}catch(e){return null;}}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 function restart(){$('modal').style.display='none';clearSave();init();fitCam();saveGame();}
 function newGameAsk(){showModal(`<h1>🔄 Nieuw spel?</h1><p>Je huidige luchthaven wordt gewist. Dit kan je niet ongedaan maken.</p><div class="row"><button class="b" onclick="$('modal').style.display='none'">Annuleren</button><button class="b red" onclick="restart()">Ja, opnieuw</button></div>`);}
@@ -627,11 +852,45 @@ function drawPlane(pl){
   poly([W2(1.3,-.13,15),W2(1.5,-.08,15),W2(1.5,.08,15),W2(1.3,.13,15)],'#2b3a4a');
   poly([W2(-1.1,0,14),W2(-1.65,0,14),W2(-1.72,0,42),W2(-1.5,0,42)],pl.color,shade(pl.color,.7));
   ctx.restore();
+  if(pl.hold){const fl=Math.sin(performance.now()/90)*2;emojiAt('🔥',pl.x+.2,pl.y+.6,26+fl,22);emojiAt('💨',pl.x-.4,pl.y,52-fl,18);}
 }
 
+function drawFlatAir(o){
+  const Y='#f4c84a';
+  if(o.type=='taxi'){quad(o.x,o.y,o.x+1,o.y+1,0,'#6b7079');const cx=o.x+.5,cy=o.y+.5;
+    for(const[dx,dy]of D){const n=agAt(o.x+dx,o.y+dy),edge=(dx==1&&o.x==ZX1-1)||(dx==-1&&S.rw2&&o.x==ZX0+5);
+      if(!edge&&!(n&&(n.type=='taxi'||n.type=='stand')))continue;
+      if(dx)quad(Math.min(cx,cx+dx*.5),cy-.05,Math.max(cx,cx+dx*.5),cy+.05,0,Y);else quad(cx-.05,Math.min(cy,cy+dy*.5),cx+.05,Math.max(cy,cy+dy*.5),0,Y);}
+    return;}
+  quad(o.x,o.y,o.x+o.sz,o.y+o.sz,0,'#62676f');quad(o.x+.12,o.y+.12,o.x+o.sz-.12,o.y+o.sz-.12,0,null,Y);
+  const c=o.x+o.sz/2,d=o.y+o.sz/2;quad(c-.05,o.y+.35,c+.05,o.y+o.sz-.35,0,Y);quad(o.x+.35,d-.05,o.x+o.sz-.35,d+.05,0,Y);
+}
+function drawAir(o){
+  const cx=o.x+o.sz/2,cy=o.y+o.sz/2;
+  if(o.type=='taxi')return;
+  if(o.type=='stand'){const f=o.flight,ok=standOK(o);label(cx,cy,10,!ok?`🅿️ P${o.num} · ⚠️ niet verbonden`:f?`🅿️ P${o.num} · ${f.code}`:`🅿️ P${o.num} · vrij`,!ok?'warn':f?'':'dim');return;}
+  const t=TYPES[o.type],h={hangar:48,garage:26,fire:30}[o.type],m=.15,x1=o.x+o.sz-m,hd=h*.7;
+  box(o.x+m,o.y+m,o.sz-2*m,o.sz-2*m,0,h,t.col);
+  if(o.type=='hangar')box(o.x+m,o.y+m,o.sz-2*m,o.sz-2*m,h,4,'#7f8c8d');
+  if(o.type=='fire')for(let i=0;i<2;i++)poly([P(x1+.01,o.y+.45+i*1.1,0),P(x1+.01,o.y+1.35+i*1.1,0),P(x1+.01,o.y+1.35+i*1.1,hd),P(x1+.01,o.y+.45+i*1.1,hd)],'#f5b7b1');
+  else poly([P(x1+.01,o.y+.5,0),P(x1+.01,o.y+o.sz-.5,0),P(x1+.01,o.y+o.sz-.5,hd),P(x1+.01,o.y+.5,hd)],o.type=='hangar'?'#4d5656':'#566573');
+  label(cx,cy,h+22,`${t.e} ${t.n}`,'');
+}
+function drawVeh(v){
+  const K=VK[v.k],vert=Math.abs(v.dir[1])>=Math.abs(v.dir[0]),len=v.k=='bus'?1.9:1.3,wd=v.k=='bus'?.62:.55,w=vert?wd:len,d=vert?len:wd,sx=vert?0:Math.sign(v.dir[0])||1,sy=vert?Math.sign(v.dir[1])||1:0;
+  if(v.k=='bag'){
+    for(let i=0;i<2;i++){const ox=v.x-sx*(.2+i*.62),oy=v.y-sy*(.2+i*.62);box(ox-.25,oy-.25,.5,.5,2,5,'#7f8c8d');box(ox-.2,oy-.2,.18,.4,7,6,i?'#3498db':'#e74c3c');box(ox+.02,oy-.2,.18,.4,7,8,i?'#f1c40f':'#2ecc71');}
+    const tx=v.x+sx*.45,ty=v.y+sy*.45;box(tx-.26,ty-.26,.52,.52,2,13,K.col);
+  }else{
+    const h=v.k=='bus'?17:v.k=='cater'?18:12;box(v.x-w/2,v.y-d/2,w,d,2,h,K.col);box(v.x-w/2,v.y-d/2,w,d,h+2,2,K.top);
+    if(v.k!='bus'){const cx=v.x+sx*.55,cy=v.y+sy*.55;box(cx-.27,cy-.27,.54,.54,2,16,v.k=='fire'?'#922b21':'#f4c84a');}
+  }
+  const ic=v.state=='broken'?'💥':v.k=='fire'&&v.state=='work'?'💦':(v.state=='work'||v.state=='load')?K.e:v.state=='fix'||v.cond<25?'🔧':'';
+  if(ic){const[px,py]=P(v.x,v.y,36);ctx.font=`13px ${EMO}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(ic,px,py);}
+}
 function drawRoomBase(o){
   const t=TYPES[o.type],n=o.sz;if(n<2||t.noacc)return;
-  quad(o.x,o.y,o.x+n,o.y+n,0,rgba(t.col,o.type=='gate'?.18:.28));
+  quad(o.x,o.y,o.x+n,o.y+n,0,rgba(t.col,isGate(o)?.18:.28));
   if(o.type=='toilet'&&o.dirt>3)for(let i=0;i<Math.min(5,o.dirt-3);i++){const[sx,sy]=P(o.x+.4+(i*.37)%1.2,o.y+.5+(i*.53)%1.1);ctx.fillStyle='rgba(120,90,40,.55)';ctx.beginPath();ctx.ellipse(sx,sy,6,3,0,0,7);ctx.fill();}
   for(const seg of walls(o))if(seg.back)box(...seg.b,0,10+4*(o.lv||1),shade(t.col,1.05));
 }
@@ -646,6 +905,7 @@ function walls(o){
   return out;
 }
 function drawObject(o){
+  if(o.air){drawAir(o);return;}
   const t=TYPES[o.type],items=[];
   for(const f of FURN[o.type]||[]){const[cx,cy]=L(o,f[0],f[1]);items.push({d:cx+cy,f:()=>fbox(o,f)});}
   if(SEATS[o.type])SEATS[o.type].forEach((sp,i)=>{const[cx,cy]=L(o,...sp);items.push({d:cx+cy-.01,f:()=>fbox(o,[sp[0],sp[1],.34,.42,7,'#3b5bdb'])});const p=o.seats[i];if(p&&p.state=='sit')items.push({d:cx+cy,f:()=>drawPerson(cx,cy,paxLook(p))});});
@@ -657,7 +917,7 @@ function drawObject(o){
   // badge
   const cx=o.x+o.sz/2,cy=o.y+o.sz/2;
   if(t.svc){const n=o.queue.length+o.serving.length;label(cx,cy,o.sz*16+26,`${t.e}${o.lv>1?'★'.repeat(o.lv):''} ${t.staff&&!o.staffed?'❗':n}`,t.staff&&!o.staffed?'warn':o.type=='toilet'&&o.dirt>6?'warn':'');}
-  if(o.type=='gate'){const f=o.flight;if(f){const m=Math.max(0,f.dep-S.min);label(cx,cy,80,`✈ ${o.num}${o.lv>1?'★'.repeat(o.lv):''} · ${Math.floor(m/60)}:${String(Math.floor(m%60)).padStart(2,'0')} · ${f.boarded}/${f.pax}`,f.state=='boarding'?'board':'');}else label(cx,cy,80,`✈ ${o.num} · vrij`,'dim');}
+  if(isGate(o)){const f=o.flight,ic=o.type=='busgate'?'🚌':'✈';if(f){const m=Math.max(0,f.dep-S.min),mi=f.plane.state=='parked'?missing(f).map(k=>VK[k].e).join(''):'';label(cx,cy,80,`${ic} ${o.num}${o.lv>1?'★'.repeat(o.lv):''} · ${Math.floor(m/60)}:${String(Math.floor(m%60)).padStart(2,'0')} · ${f.boarded}/${f.pax}${mi?' · '+mi:''}`,f.state=='boarding'?'board':'');}else label(cx,cy,80,`${ic} ${o.num} · vrij`,'dim');}
 }
 function drawGhost(){
   if(panel=='obj'&&S.sel&&!S.sel.dead){const o=S.sel;quad(o.x,o.y,o.x+o.sz,o.y+o.sz,1,'rgba(244,200,74,.25)','#f4c84a');}
@@ -670,7 +930,11 @@ function draw(){
   ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#8cc075';ctx.fillRect(0,0,W,H);
   const s=cam.s;ctx.setTransform(DPR*s,0,0,DPR*s,-cam.x*s*DPR,-cam.y*s*DPR);LABELS=[];
   // ground
-  quad(-30,-30,GW+30,GH+30,0,'#8cc075');
+  quad(-42,-30,GW+30,GH+30,0,'#8cc075');
+  quad(ZX0,0,ZX1,GH,0,'#9acb82');
+  if(panel=='platform'){ctx.setLineDash([6,5]);quad(ZX0+.05,.05,ZX1-.05,GH-.05,0,null,'rgba(255,255,255,.85)');ctx.setLineDash([]);label((ZX0+ZX1)/2,(S.oy0+S.oy1)/2,6,'🏗️ Platformterrein','sale');}
+  if(S.rw2){quad(ZX0,-30,ZX0+5,GH+30,0,'#5b6067');for(let y=-28;y<GH+28;y+=3)quad(RW2X-.12,y,RW2X+.12,y+1.6,0,'#f5f5f5');quad(ZX0,-30,ZX0+.25,GH+30,0,'#f5f5f5');quad(ZX0+4.75,-30,ZX0+5,GH+30,0,'#f5f5f5');}
+  for(const o of S.objs)if(o.type=='taxi'||o.type=='stand')drawFlatAir(o);
   quad(-8,-30,-2.7,GH+30,0,'#5b6067');
   for(let y=-28;y<GH+28;y+=3)quad(-5.42,y,-5.18,y+1.6,0,'#f5f5f5');
   quad(-8,-30,-7.75,GH+30,0,'#f5f5f5');quad(-2.95,-30,-2.7,GH+30,0,'#f5f5f5');
@@ -714,8 +978,7 @@ function draw(){
   for(const st of S.staff)if(st.state!='work')list.push({d:st.x+st.y,f:()=>drawPerson(st.x,st.y,staffLook(st))});
   for(const t of S.trees)list.push({d:t.x+t.y,f:()=>{const[sx,sy]=P(t.x,t.y,0);ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(sx+4,sy,14*t.s,6*t.s,0,0,7);ctx.fill();ctx.fillStyle='#7a5230';ctx.fillRect(sx-2.5,sy-14*t.s,5,14*t.s);
     ctx.fillStyle='#3f8f3a';ctx.beginPath();ctx.arc(sx,sy-26*t.s,14*t.s,0,7);ctx.fill();ctx.fillStyle='#5cb85c';ctx.beginPath();ctx.arc(sx-4*t.s,sy-31*t.s,8*t.s,0,7);ctx.fill();}});
-  for(const t of S.trucks)list.push({d:t.x+t.y,f:()=>{const v=Math.abs(t.dir[1])>=Math.abs(t.dir[0]);const w=v?.55:1.3,d=v?1.3:.55;box(t.x-w/2,t.y-d/2,w,d,2,12,'#ecf0f1');box(t.x-w/2,t.y-d/2,w,d,14,2,'#e74c3c');
-    const cx=t.x+(v?0:t.dir[0]>0?.55:-.55),cy=t.y+(v?t.dir[1]>0?.55:-.55:0);box(cx-.27,cy-.27,.54,.54,2,16,'#f4c84a');if(t.state=='fuel'){const[sx,sy]=P(t.x,t.y,34);ctx.font=`13px ${EMO}`;ctx.textAlign='center';ctx.fillText('⛽',sx,sy);}}});
+  for(const v of S.veh)list.push({d:v.x+v.y,f:()=>drawVeh(v)});
   for(const c of[...S.parked,...S.cars])list.push({d:c.x+c.y,f:()=>{const v=c.v!==undefined;const w=v?.62:1.1,d=v?1.1:.62;box(c.x-w/2,c.y-d/2,w,d,2,9,c.col);box(c.x-w/2+(v?.08:.25),c.y-d/2+(v?.25:.08),v?w-.16:w-.5,v?d-.5:d-.16,11,7,shade(c.col,.9));}});
   list.sort((a,b)=>a.d-b.d).forEach(i=>i.f());
   // front rail
@@ -749,6 +1012,12 @@ function updHud(){
   $('rwTxt').textContent=(S.min<S.repairEnd?'🚧 ':'')+Math.round(S.runway)+'%';$('rwTxt').style.color=S.runway<35?'#ff6b6b':S.runway<60?'#f4c84a':'#fff';
   $('lvlTxt').textContent='Lvl '+S.level;$('lvlBar').style.width=(S.level>=MAXLV?100:Math.max(0,Math.min(100,(S.xp-XPN(S.level))/(XPN(S.level+1)-XPN(S.level))*100)))+'%';
 }
+function buildUI(cat,title){
+  const its=Object.entries(TYPES).filter(([k,t])=>t.cat==cat),sel=buildSel&&TYPES[buildSel]&&TYPES[buildSel].cat==cat?TYPES[buildSel]:null,air=sel&&sel.air;
+  return`<h3>${title}</h3><div class="items">${its.map(([k,t])=>{const lk=S.level<lockLv(k);return`<div class="item ${buildSel==k?'sel':''} ${S.money<t.c||lk?'poor':''}" data-a="sel" data-t="${k}"><div class="e">${lk?'🔒':t.e}</div><div class="n">${t.n}<br><small style="color:#aeb8c6">${t.sz}×${t.sz}</small></div><div class="p" ${lk?'style="color:#f4c84a"':''}>${lk?'Level '+lockLv(k):'€'+t.c.toLocaleString('nl-BE')}</div></div>`;}).join('')}</div>
+    ${sel?`<div class="row">${buildSel!='gate'&&!sel.noacc?'<button class="b" data-a="rot">🔄 Draaien</button>':''}${S.ghost&&!S.ghost.sell?`<button class="b ${S.ghost.err?'red':'go'}" data-a="ok">${S.ghost.err?'✖ Kan niet':'✔ Bouwen'}</button>`:''}<button class="b" data-a="close">Klaar</button></div>`:''}
+    <div class="hint">${sel?(S.ghost&&S.ghost.err?'⚠️ '+S.ghost.err:(sel.d?sel.d+' ':'')+(buildSel=='taxi'?'Tik op een vakje van het platformterrein om meteen een stuk taxibaan te leggen; tik verder om door te trekken.':air?'Tik op het groene platformterrein links van de landingsbaan voor een voorbeeld, en tik nog eens (of op ✔) om te bouwen.':'Tik op de vloer voor een voorbeeld, en tik nog eens (of op ✔) om te bouwen. Geel vakje = ingang.')+(sel.earn?` Levert €${sel.earn} per klant.`:'')+(canUpg({type:buildSel})?' Later te upgraden tot ★★★.':'')):'Kies wat je wil bouwen.'}</div>`;
+}
 function renderPanel(){
   const el=$('panel');
   document.querySelectorAll('#bar [data-p]').forEach(b=>b.classList.toggle('on',b.dataset.p==panel));
@@ -756,19 +1025,16 @@ function renderPanel(){
   el.style.display='block';
   const cats={basis:'BASIS',eten:'ETEN & DRINKEN',winkels:'WINKELS',comfort:'COMFORT',extra:"EXTRA'S"};
   if(cats[panel]){
-    const its=Object.entries(TYPES).filter(([k,t])=>t.cat==panel);const sel=buildSel&&TYPES[buildSel];
-    el.innerHTML=`<h3>${cats[panel]}</h3><div class="items">${its.map(([k,t])=>{const lk=S.level<lockLv(k);return`<div class="item ${buildSel==k?'sel':''} ${S.money<t.c||lk?'poor':''}" data-a="sel" data-t="${k}"><div class="e">${lk?'🔒':t.e}</div><div class="n">${t.n}<br><small style="color:#aeb8c6">${t.sz}×${t.sz}</small></div><div class="p" ${lk?'style="color:#f4c84a"':''}>${lk?'Level '+lockLv(k):'€'+t.c.toLocaleString('nl-BE')}</div></div>`;}).join('')}</div>
-    ${sel?`<div class="row">${buildSel!='gate'&&!sel.noacc?'<button class="b" data-a="rot">🔄 Draaien</button>':''}${S.ghost&&!S.ghost.sell?`<button class="b ${S.ghost.err?'red':'go'}" data-a="ok">${S.ghost.err?'✖ Kan niet':'✔ Bouwen'}</button>`:''}<button class="b" data-a="close">Klaar</button></div>`:''}
-    <div class="hint">${sel?(S.ghost&&S.ghost.err?'⚠️ '+S.ghost.err:(sel.d?sel.d+' ':'')+'Tik op de vloer voor een voorbeeld, en tik nog eens (of op ✔) om te bouwen. Geel vakje = ingang.'+(sel.earn?` Levert €${sel.earn} per klant.`:'')+(canUpg({type:buildSel})?' Later te upgraden tot ★★★.':'')):'Kies wat je wil bouwen.'}</div>`;
+    el.innerHTML=buildUI(panel,cats[panel]);
   }else if(panel=='sloop'){
     el.innerHTML=`<h3>SLOPEN</h3><div class="hint" style="margin-top:0">Tik op een object om het te selecteren, tik nog eens om te slopen. Je krijgt 50% terug.</div>${S.ghost&&S.ghost.sell?`<div class="row"><button class="b red" data-a="dosell">🧨 Sloop ${TYPES[S.ghost.sell.type].n}</button></div>`:''}`;
   }else if(panel=='staff'){
-    let sal=S.trucks.length*TRUCK_SAL;for(const s of S.staff)sal+=STAFF[s.kind].sal;
-    el.innerHTML=`<h3>PERSONEEL</h3>`+Object.entries(STAFF).map(([k,v])=>{const n=S.staff.filter(s=>s.kind==k).length;return`<div class="srow"><div class="e">${v.e}</div><div class="t"><b>${v.n}</b> × ${n}<br><small>${v.d} • €${v.sal}/dag</small></div><button data-a="fire" data-k="${k}" style="background:#b8433b">−</button><button data-a="hire" data-k="${k}" style="background:#2e9e5b">+</button></div>`;}).join('')+`<div class="hint">Loonkost (incl. ${S.trucks.length} tankwagen${S.trucks.length==1?'':'s'}): €${sal} per dag, betaald om middernacht. Tankwagens koop je bij 🛬 Platform.</div>`;
+    let sal=0;for(const s of S.staff)sal+=STAFF[s.kind].sal;
+    el.innerHTML=`<h3>PERSONEEL</h3>`+Object.entries(STAFF).map(([k,v])=>{const n=S.staff.filter(s=>s.kind==k).length;return`<div class="srow"><div class="e">${v.e}</div><div class="t"><b>${v.n}</b> × ${n}<br><small>${v.d} • €${v.sal}/dag</small></div><button data-a="fire" data-k="${k}" style="background:#b8433b">−</button><button data-a="hire" data-k="${k}" style="background:#2e9e5b">+</button></div>`;}).join('')+`<div class="hint">Loonkost terminalpersoneel: €${sal} per dag, betaald om middernacht. Chauffeurs en voertuigen regel je bij 🚚 Afhandeling.</div>`;
   }else if(panel=='flights'){
     const list=S.flights.slice().sort((a,b)=>a.dep-b.dep);
-    el.innerHTML=`<h3>VERTREKKEN</h3><table><tr><th>Vlucht</th><th>Naar</th><th>Tijd</th><th>Gate</th><th>Status</th></tr>${list.length?list.map(f=>`<tr><td><span class="dot" style="background:${f.color}"></span>${f.code}</td><td>${f.dest}</td><td>${fmtT(f.dep)}</td><td>${f.gate.num}</td><td>${f.state=='open'?(f.plane.state=='arrive'?'Landt…':'Inchecken'):f.state=='boarding'?'<b style="color:#f4c84a">Boarding</b>':`Weg ${f.boarded}/${f.pax}`}</td></tr>`).join(''):'<tr><td colspan=5>Nog geen vluchten…</td></tr>'}</table>
-    <div class="hint">✈️ Aan boord ${S.stats.boarded} • 😞 Gemist ${S.stats.missed} • 😡 Boos weg ${S.stats.angry} • 🧍 In terminal ${S.pax.length} • 🛍️ Omzet winkels ${eur(S.stats.shop)}<br>Hogere reputatie = meer en grotere vluchten. Meer gates = meer verkeer.</div>`;
+    el.innerHTML=`<h3>VERTREKKEN</h3><table><tr><th>Vlucht</th><th>Naar</th><th>Tijd</th><th>Gate</th><th>Status</th></tr>${list.length?list.map(f=>`<tr><td><span class="dot" style="background:${f.color}"></span>${f.code}${f.c?' 🤝':''}</td><td>${f.dest}</td><td>${fmtT(f.dep)}</td><td>${f.stand?'🚌'+f.gate.num+'<br><small>P'+f.stand.num+'</small>':f.gate.num}</td><td>${f.state=='open'?(f.plane.hold?'🔥 Incident':f.plane.state=='arrive'?'Landt…':'Inchecken'):f.state=='boarding'?'<b style="color:#f4c84a">Boarding</b>':`Weg ${f.boarded}/${f.pax}`}${f.state!='gone'&&f.plane.state=='parked'?'<br><small>'+f.need.map(k=>f.done[k]?'✅':VK[k].e).join('')+'</small>':''}</td></tr>`).join(''):'<tr><td colspan=5>Nog geen vluchten…</td></tr>'}</table>
+    <div class="hint">✈️ Aan boord ${S.stats.boarded} • 😞 Gemist ${S.stats.missed} • 😡 Boos weg ${S.stats.angry} • 🧍 In terminal ${S.pax.length} • 🛍️ Omzet winkels ${eur(S.stats.shop)}<br>Hogere reputatie = meer en grotere vluchten. Meer gates = meer verkeer.<br>🤝 = vaste vlucht van een airline-contract. Onder de status zie je de afhandeling: ⛽ tanken, 🧳 bagage, 🍱 catering, 🚌 bus.</div>`;
   }else if(panel=='stars'){
     const n=S.reviews.length,avg=avgStars(),cnt=[0,0,0,0,0,0];S.reviews.forEach(r=>cnt[r.s]++);
     const cm={};S.reviews.forEach(r=>{if(r.c)cm[r.c]=(cm[r.c]||0)+1;});
@@ -787,31 +1053,52 @@ function renderPanel(){
     el.innerHTML=`<h3>TERMINALS</h3>${tr}<h3 style="margin-top:12px">GROND TERMINAL 1</h3><div class="hint" style="margin-top:0">Meer grond = een grotere terminal. Je kan er alles bouwen, ook extra gates langs het platform.</div>`+PLOTS.map((p,i)=>{const own=S.plots[i],b=plotBuyable(i);
       return`<div class="srow"><div class="e">${own?'✅':b?'🏷️':'🔒'}</div><div class="t"><b>${p.n}</b> <small>· ${GW-AX}×${p.y1-p.y0} vakjes</small><br><small>${own?'Van jou':S.level<PLOT_LV[i]?'🔒 Vanaf level '+PLOT_LV[i]+' · €'+p.c.toLocaleString('nl-BE'):b?'€'+p.c.toLocaleString('nl-BE'):'Koop eerst '+PLOTS[p.req].n}</small></div>${!own&&b&&S.level>=PLOT_LV[i]?`<button class="b ${S.money>=p.c?'go':''}" style="flex:0 0 auto;width:auto;height:auto;font-size:13px;padding:9px 14px" data-a="buy" data-i="${i}">Koop</button>`:''}</div>`;}).join('');
   }else if(panel=='platform'){
-    const rep=S.min<S.repairEnd,busy=S.trucks.filter(t=>t.state!='idle').length;
-    el.innerHTML=`<h3>🛬 LANDINGSBAAN</h3><div class="dist"><span style="width:44px">${Math.round(S.runway)}%</span><div class="bar" style="height:9px"><i style="width:${S.runway}%;background:${S.runway<35?'#e05a4f':S.runway<60?'#f4c84a':'#57c26a'}"></i></div></div>
-    <div class="hint" style="margin-top:2px">Elke landing en elk vertrek slijt de baan${S.rwLv>1?' (versterkt: half zo snel)':''}. Onder 35%: hobbelige landingen en slechtere reputatie. Onder 15%: geen vluchten meer!</div>
+    const rep=S.min<S.repairEnd,c2=connPath();
+    el.innerHTML=buildUI('platform','🏗️ PLATFORM BOUWEN')+`<div class="row"><button class="b" data-a="zone">📍 Toon het platformterrein</button></div>
+    <h3 style="margin-top:14px">🛬 LANDINGSBAAN 1</h3><div class="dist"><span style="width:44px">${Math.round(S.runway)}%</span><div class="bar" style="height:9px"><i style="width:${S.runway}%;background:${S.runway<35?'#e05a4f':S.runway<60?'#f4c84a':'#57c26a'}"></i></div></div>
+    <div class="hint" style="margin-top:2px">Elke landing en elk vertrek slijt de baan${S.rwLv>1?' (versterkt: half zo snel)':''}. Onder 35%: hobbelige landingen en meer kans op incidenten. Onder 15%: geen landingen meer!</div>
     <div class="row"><button class="b ${rep?'':'go'}" data-a="repair">${rep?'🚧 Onderhoud bezig…':'🔧 Onderhoud · €'+repairCost().toLocaleString('nl-BE')}</button>${S.rwLv>1?'':`<button class="b" data-a="reinf">${S.level<RW_LV?'🔒 Versterken (lvl '+RW_LV+')':'💪 Versterken · €15.000'}</button>`}</div>
-    <div class="hint">Onderhoud duurt 45 minuten speltijd: dan landen er geen vliegtuigen.</div>
-    <h3 style="margin-top:14px">⛽ TANKWAGENS</h3>
-    <div class="srow"><div class="e">🚛</div><div class="t"><b>Tankwagen</b> × ${S.trucks.length}<br><small>${busy} onderweg · ${S.fuelQ.length} vliegtuig(en) wachten · €${TRUCK_C} + €${TRUCK_SAL}/dag</small></div><button data-a="truck-" style="background:#b8433b">−</button><button data-a="truck+" style="background:#2e9e5b">+</button></div>
-    <div class="hint">Elk vliegtuig moet getankt worden vóór vertrek. Niet getankt = 15 min vertraging, slechte reviews en minder reputatie. Meer gates → meer tankwagens nodig.</div>`;
+    <div class="hint">Onderhoud duurt 45 minuten speltijd: dan landt er niets op baan 1.</div>
+    <h3 style="margin-top:14px">🛬 LANDINGSBAAN 2</h3>${S.rw2?`<div class="hint" style="margin-top:0">${c2?'✅ Verbonden met baan 1 via een taxibaan. Vliegtuigen landen om beurten op beide banen.':'⚠️ Nog niet verbonden: leg een taxibaan van baan 2 naar baan 1 (of naar een vliegtuigparking).'}</div>`:`<div class="hint" style="margin-top:0">Een tweede baan helemaal links op het platformterrein (5 vakjes breed). Handig bij onderhoud of incidenten op baan 1.</div><div class="row"><button class="b ${S.level>=RW2_LV&&S.money>=RW2_C?'go':''}" data-a="rw2">${S.level<RW2_LV?'🔒 Vanaf level '+RW2_LV+' · '+eur(RW2_C):'🛬 Aanleggen · '+eur(RW2_C)}</button></div>`}`;
+  }else if(panel=='veh'){
+    const busy=S.veh.filter(vBusy).length,nb=S.veh.filter(v=>v.state=='broken').length,fs=S.objs.filter(o=>o.type=='fire').length;
+    el.innerHTML=`<h3>👷 CHAUFFEURS</h3><div class="srow"><div class="e">👷</div><div class="t"><b>Grondpersoneel</b> × ${S.drivers}<br><small>${busy} aan het werk · €${DRV_SAL}/dag · elk rijdend voertuig heeft een chauffeur nodig</small></div><button data-a="drv-" style="background:#b8433b">−</button><button data-a="drv+" style="background:#2e9e5b">+</button></div>
+    <h3 style="margin-top:12px">🚚 VOERTUIGEN</h3>`+['fuel','bag','cater','bus'].map(k=>{const t=VK[k],l=S.veh.filter(v=>v.k==k),lk=S.level<t.lv,avg=l.length?Math.round(l.reduce((a,v)=>a+v.cond,0)/l.length):0,br=l.filter(v=>v.state=='broken').length,w=S.jobs.filter(j=>j.k==k).length;
+      return`<div class="srow"><div class="e">${lk?'🔒':t.e}</div><div class="t"><b>${t.n}</b> × ${l.length}<br><small>${lk?'Vanaf level '+t.lv:`${t.d} · €${t.c.toLocaleString('nl-BE')} + €${VUPK}/dag`}${l.length?` · 🔧 ${avg}%`:''}${br?` · 💥 ${br} kapot`:''}${w?` · ⏳ ${w} wachten`:''}</small></div>${lk?'':`<button data-a="v-" data-k="${k}" style="background:#b8433b">−</button><button data-a="v+" data-k="${k}" style="background:#2e9e5b">+</button>`}</div>`;}).join('')
+    +(nb?`<div class="row"><button class="b y" data-a="tow">🔧 Herstel ${nb} kapot voertuig${nb>1?'en':''} · ${eur(nb*TOW_C)}</button></div>`:'')
+    +`<div class="hint">Elk vliegtuig heeft vóór vertrek nodig: ⛽ tanken, 🧳 bagage${S.level>=VK.cater.lv?', 🍱 catering':''} en bij een vliegtuigparking een 🚌 bus. Ontbreekt er iets, dan vertrekt het te laat. Voertuigen slijten bij elke rit: een 🔧 garage (🛬 Platform) houdt ze automatisch in orde.</div>
+    <h3 style="margin-top:12px">🚒 BRANDWEER</h3><div class="hint" style="margin-top:0">${fs?`${fs} kazerne${fs>1?'s':''} met brandweerwagen · €${FIRE_SAL}/dag per kazerne. Een brand is snel geblust.`:'Geen brandweer. Bij een incident gaat de landingsbaan een uur dicht en zakt je reputatie flink. Bouw een kazerne bij 🛬 Platform.'}${S.stats.inc?` · ${S.stats.inc} incident(en) tot nu toe`:''}</div>`;
+  }else if(panel=='airlines'){
+    const cap=placesTotal(),pk=peakLoad(),cs=S.contracts.slice().sort((a,b)=>a.dep-b.dep);
+    el.innerHTML=`<h3>🤝 CONTRACTEN (${cs.length})</h3>`+(cs.length?cs.map(c=>{const al=AIRL[c.al],busy=S.contracts.filter(b=>Math.abs(b.dep-c.dep)<155).length>cap;
+      return`<div class="srow"><div class="t"><span class="dot" style="background:${al.col}"></span><b>${al.c}${c.no}</b> → ${c.dest} <small>· ${PT[c.pt].n}</small><br><small>🕑 ${fmtT(c.dep)}${busy?' <b style="color:#ff6b6b">⚠️ te druk</b>':''} · +€${c.fee}/reiziger · 😊 ${Math.round(c.sat)}%</small></div><button data-a="cm" data-i="${c.id}" data-d="-30" style="background:#3a4659;width:34px">◀</button><button data-a="cm" data-i="${c.id}" data-d="30" style="background:#3a4659;width:34px">▶</button><button data-a="cx" data-i="${c.id}" style="background:#b8433b;width:34px">✕</button></div>`;}).join(''):'<div class="hint" style="margin-top:0">Nog geen contracten. Teken hieronder een aanbieding voor vaste dagelijkse vluchten.</div>')
+    +`<div class="hint">Elke dag vertrekt de vlucht op het gekozen uur; het toestel landt 2,5 uur vooraf. Schuif met ◀ ▶ om de drukte te spreiden. Je hebt <b>${cap}</b> vliegtuigplaats${cap==1?'':'en'}${pk?`, op het drukste moment heb je er <b>${pk}</b> nodig`:''}. Vertraging = boete, geen plaats = dubbele boete. Een ontevreden airline zegt op.</div>
+    <h3 style="margin-top:12px">📨 AANBIEDINGEN</h3>`+S.offers.map(o=>{const al=AIRL[o.al],req=[`⭐ ${o.rep}%`];if(PT[o.pt].sc>1)req.push('gate '+'★'.repeat(PT[o.pt].sc));if(o.pt=='L')req.push('🚒 brandweer');if(o.hang)req.push('🏗️ hangar');
+      return`<div class="srow"><div class="t"><span class="dot" style="background:${al.col}"></span><b>${al.n}</b> · ${al.c}${o.no} → ${o.dest}<br><small>${PT[o.pt].n} (${PT[o.pt].pax} p.) · 🕑 ${fmtT(o.dep)} · +€${o.fee}/reiziger · bonus ${eur(o.bonus)} · boete ${eur(o.pen)}<br>Vereist: ${req.join(' · ')}</small></div><button class="b go" style="flex:0 0 auto;width:auto;height:auto;padding:9px 12px;font-size:13px" data-a="sign" data-i="${o.id}">Teken</button></div>`;}).join('')
+    +`<div class="hint">Elke nacht komen er nieuwe aanbiedingen. Losse chartervluchten blijven komen als er plaats vrij is.</div>`;
   }else if(panel=='obj'){
     const o=S.sel;if(!o||o.dead){panel=null;renderPanel();return;}const t=TYPES[o.type],lv=o.lv||1;
     let info=[];
-    if(o.type=='gate')info.push(`✈️ ${o.flight?o.flight.code+' → '+o.flight.dest+' om '+fmtT(o.flight.dep)+' · '+o.flight.boarded+'/'+o.flight.pax+' aan boord':'Geen vlucht'}`,`👥 Max. ${GATECAP[lv]} passagiers per vlucht`,`💺 Zitjes ${o.seats.filter(Boolean).length}/6 bezet`);
+    if(isGate(o))info.push(`✈️ ${o.flight?o.flight.code+' → '+o.flight.dest+' om '+fmtT(o.flight.dep)+' · '+o.flight.boarded+'/'+o.flight.pax+' aan boord'+(o.flight.stand?' · toestel op P'+o.flight.stand.num:''):'Geen vlucht'}`,`👥 Max. ${GATECAP[lv]} passagiers per vlucht`,`💺 Zitjes ${o.seats.filter(Boolean).length}/6 bezet`);
     if(t.svc)info.push(`🧍 ${o.queue.length} in de rij · ${o.serving.length} geholpen`,`⏱️ ${svcTime(o).toFixed(1)} s per klant`);
     if(t.earn)info.push(`💶 €${earnOf(o)} per klant`);
     if(t.staff)info.push(o.staffed?'✅ Bemand':'❌ Geen personeel — neem een '+STAFF[t.staff].n.toLowerCase()+' aan');
     if(o.type=='toilet')info.push(o.dirt>6?'🤢 Vies!':o.dirt>3?'🧽 Wat vuil':'✨ Proper');
-    if(o.seats&&o.type!='gate')info.push(`💺 ${o.seats.filter(Boolean).length}/${o.seats.length} bezet`);
+    if(o.type=='busgate')info.push('🚌 Reizigers gaan met de platformbus naar een vliegtuigparking');
+    if(o.type=='stand')info.push(o.flight?`✈️ ${o.flight.code} → ${o.flight.dest} · vertrek ${fmtT(o.flight.dep)}`:'✈️ Geen vliegtuig',standPath(o,1)?'✅ Verbonden met baan 1':'❌ Niet verbonden met baan 1',...(S.rw2?[standPath(o,2)?'✅ Verbonden met baan 2':'❌ Niet verbonden met baan 2']:[]),S.objs.some(x=>x.type=='busgate')?'🚌 Reizigers komen met de bus van een busgate':'⚠️ Bouw een busgate in de terminal');
+    if(o.type=='hangar')info.push(`💶 Verhuurd aan airlines: +€${HANGAR_RENT} per dag`);
+    if(o.type=='garage')info.push('🔧 Voertuigen onder 45% gaan hier vanzelf op onderhoud (kost: slijtage × €6)','🚛 Kapotte voertuigen worden weggesleept en hersteld');
+    if(o.type=='fire'){const v=S.veh.find(v=>v.home===o);info.push(`🚒 Brandweerwagen: ${!v?'–':v.state=='idle'?'paraat':v.state=='work'?'aan het blussen':'onderweg'}`,`💶 Ploeg: €${FIRE_SAL} per dag`);}
+    if(o.type=='taxi')info.push('🛣️ Stuk taxibaan');
+    if(o.seats&&!isGate(o))info.push(`💺 ${o.seats.filter(Boolean).length}/${o.seats.length} bezet`);
     let up='';
     if(canUpg(o)){
       if(lv>=3)up='<div class="hint">🏆 Maximaal niveau bereikt.</div>';
       else{const need=UPG_LV[lv+1],c=upCost(o),lk=S.level<need;
-        const what=o.type=='gate'?`grotere vliegtuigen: max ${GATECAP[lv]} → ${GATECAP[lv+1]} passagiers`:`${Math.round(35)}% sneller`+(t.earn?`, omzet €${earnOf(o)} → €${Math.round(t.earn*(1+.4*lv))}`:'')+(o.type=='toilet'?', wordt minder snel vuil':'');
+        const what=isGate(o)?`grotere vliegtuigen: max ${GATECAP[lv]} → ${GATECAP[lv+1]} passagiers`:`${Math.round(35)}% sneller`+(t.earn?`, omzet €${earnOf(o)} → €${Math.round(t.earn*(1+.4*lv))}`:'')+(o.type=='toilet'?', wordt minder snel vuil':'');
         up=`<div class="row"><button class="b ${lk?'':S.money>=c?'go':''}" data-a="upg">${lk?'🔒 '+'★'.repeat(lv+1)+' vanaf level '+need:'⬆️ Upgrade naar '+'★'.repeat(lv+1)+' · €'+c.toLocaleString('nl-BE')}</button></div><div class="hint">${what}. Hoger niveau = hoger dagelijks onderhoud.</div>`;}
     }
-    el.innerHTML=`<h3>${t.e} ${t.n.toUpperCase()}${o.type=='gate'?' '+o.num:''} <span class="star">${canUpg(o)?'★'.repeat(lv)+'☆'.repeat(3-lv):''}</span></h3>${info.map(x=>`<div style="margin:4px 0">${x}</div>`).join('')}${up}
+    el.innerHTML=`<h3>${t.e} ${t.n.toUpperCase()}${isGate(o)?' '+o.num:o.type=='stand'?' P'+o.num:''} <span class="star">${canUpg(o)?'★'.repeat(lv)+'☆'.repeat(3-lv):''}</span></h3>${info.map(x=>`<div style="margin:4px 0">${x}</div>`).join('')}${up}
     <div class="row"><button class="b" data-a="close">Sluiten</button></div>`;
   }else if(panel=='level'){
     const L=S.level,next=L>=MAXLV?null:XPN(L+1);
@@ -844,8 +1131,16 @@ $('panel').addEventListener('click',e=>{
   else if(a=='goto'){focusTerm(+b.dataset.i);}
   else if(a=='repair'){repairRunway();}
   else if(a=='reinf'){reinforceRunway();}
-  else if(a=='truck+'){buyTruck();}
-  else if(a=='truck-'){sellTruck();}
+  else if(a=='v+'){buyVeh(b.dataset.k);}
+  else if(a=='v-'){sellVeh(b.dataset.k);}
+  else if(a=='drv+'){S.drivers++;}
+  else if(a=='drv-'){if(S.drivers>0)S.drivers--;}
+  else if(a=='tow'){towAll();}
+  else if(a=='rw2'){buyRw2();}
+  else if(a=='zone'){focusZone(true);}
+  else if(a=='sign'){signOffer(+b.dataset.i);}
+  else if(a=='cm'){moveContract(+b.dataset.i,+b.dataset.d);}
+  else if(a=='cx'){const id=+b.dataset.i;showModal(`<h1>📄 Contract opzeggen?</h1><p>De airline is daar niet blij mee: −3% reputatie.</p><div class="row"><button class="b" onclick="$('modal').style.display='none'">Annuleren</button><button class="b red" onclick="endContract(${id});$('modal').style.display='none';renderPanel()">Opzeggen</button></div>`);return;}
   else if(a=='save'){saveGame();toast('💾 Opgeslagen');}
   else if(a=='newgame'){newGameAsk();return;}
   else if(a=='repay'){if(S.loan<=0)toast('🏦 Geen lening');else if(S.money<5000)toast('💸 Niet genoeg cash');else{S.loan-=5000;S.money-=5000;}}
@@ -859,6 +1154,7 @@ function showModal(h){const m=$('modal');m.innerHTML=`<div class="box">${h}</div
 
 function onTap(cx,cy){
   const wx=cx/cam.s+cam.x,wy=cy/cam.s+cam.y,a=wx/(TW/2),b=wy/(TH/2),tx=Math.floor((a+b)/2),ty=Math.floor((b-a)/2);
+  if(buildSel=='taxi'){const err=canPlace('taxi',tx,ty,0);if(err)toast('⚠️ '+err);else place('taxi',tx,ty,0,false);S.ghost=null;renderPanel();return;}
   if(buildSel){
     const[x,y]=anchor(buildSel,tx,ty),g=S.ghost,dir=buildSel=='gate'?3:buildDir;
     if(g&&!g.sell&&g.type==buildSel&&g.x==x&&g.y==y&&g.dir==dir){if(!g.err&&place(g.type,x,y,dir,false))S.ghost=null;else if(g.err)toast('⚠️ '+g.err);}
@@ -866,13 +1162,13 @@ function onTap(cx,cy){
     renderPanel();return;
   }
   if(kind(tx,ty)=='floor'&&!owned(ty)){const i=plotAt(ty);panel=null;setPanel('grond');if(i>=0&&plotBuyable(i))toast(`🏷️ ${PLOTS[i].n} te koop voor €${PLOTS[i].c.toLocaleString('nl-BE')}`);return;}
-  const o=S.grid[ty]&&S.grid[ty][tx];
+  let o=inZone(tx,ty)?agAt(tx,ty):S.grid[ty]&&S.grid[ty][tx];if(o===RW2TILE)o=null;
   if(panel=='sloop'){if(o){if(S.ghost&&S.ghost.sell===o){sell(o);S.ghost=null;}else S.ghost={sell:o};}else S.ghost=null;renderPanel();return;}
   if(o){S.sel=o;panel='obj';buildSel=null;S.ghost=null;renderPanel();}
 }
 
 /* ================= camera & input ================= */
-const BND={x0:P(0,GH+2)[0],x1:P(GW+8,0)[0],y0:P(0,0)[1]-120,y1:P(GW,GH)[1]+60};
+const BND={x0:P(ZX0-3,GH+2)[0],x1:P(GW+8,0)[0],y0:P(ZX0-3,0)[1]-120,y1:P(GW,GH)[1]+60};
 function resize(){DPR=Math.min(2.5,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;clampCam();}
 function fitCam(){
   const hud=$('hud').getBoundingClientRect().bottom+8,bar=$('bar').offsetHeight+8,aw=W-16,ah=Math.max(120,H-hud-bar);
@@ -883,6 +1179,7 @@ function fitCam(){
   const cx=W<H?P((AX+GW)/2+1.5,(S.oy0+S.oy1)/2)[0]:(x0+x1)/2,cy=W<H?P((AX+GW)/2+1.5,(S.oy0+S.oy1)/2)[1]:(y0+y1)/2;
   cam.x=cx-W/2/cam.s;cam.y=cy-(hud+ah/2)/cam.s;clampCam();
 }
+function focusZone(keep){const c=P((ZX0+ZX1)/2,(S.oy0+S.oy1)/2);cam.x=c[0]-W/2/cam.s;cam.y=c[1]-(keep&&W<760?H*.3:H/2)/cam.s;clampCam();if(!keep&&(W<760||H<520)){panel=null;renderPanel();}}
 function focusTerm(i){const[r0,r1]=termRange(i),c=P((AX+GW)/2,(r0+r1)/2);cam.x=c[0]-W/2/cam.s;cam.y=c[1]-H/2/cam.s;clampCam();if(W<760||H<520){panel=null;renderPanel();}}
 function clampCam(){cam.s=Math.max(.3,Math.min(2.2,cam.s));const cx=cam.x+W/2/cam.s,cy=cam.y+H/2/cam.s;cam.x=Math.max(BND.x0,Math.min(BND.x1,cx))-W/2/cam.s;cam.y=Math.max(BND.y0,Math.min(BND.y1,cy))-H/2/cam.s;}
 const ptrs=new Map();let gest=null;
@@ -905,7 +1202,7 @@ function frame(now){
   for(const c of S.cars){c.y+=c.v*c.sp*rdt;if(c.y>GH+16)c.y=-16;if(c.y<-16)c.y=GH+16;}
   for(const f of S.floats)f.t+=rdt;S.floats=S.floats.filter(f=>f.t<1.5);
   if((saveT+=rdt)>15){saveT=0;if($('modal').style.display=='none')saveGame();}
-  draw();uiT+=rdt;if(uiT>.3){uiT=0;updHud();if(['staff','flights','stars','goals','alerts','bank','grond','obj','level','platform'].includes(panel))renderPanel();}
+  draw();uiT+=rdt;if(uiT>.3){uiT=0;updHud();if(['staff','flights','stars','goals','alerts','bank','grond','obj','level','platform','veh','airlines'].includes(panel))renderPanel();}
   requestAnimationFrame(frame);
 }
 const SV=loadSave();
@@ -915,8 +1212,12 @@ showModal(`<h1>✈️ Luchthaven Tycoon</h1><p>Bouw en run je eigen luchthaven, 
 <li>Balies en security werken enkel met <b>personeel</b></li>
 <li>☕🍔 Eten, 🛍️ winkels, 🚻 toiletten, 💺 zitjes en 🥂 een lounge houden reizigers blij — en brengen geld op</li>
 <li>🧹 Schoonmakers ruimen afval op en poetsen de toiletten</li>
-<li>Elke passagier aan boord = <b>€30</b>. Reizigers geven ⭐ reviews: die bepalen je reputatie en dus hoeveel vluchten je krijgt.</li></ul>
+<li>Elke passagier aan boord = <b>€30</b>. Reizigers geven ⭐ reviews: die bepalen je reputatie en dus hoeveel vluchten je krijgt.</li>
+<li>🚚 Elk vliegtuig moet <b>getankt</b> worden en <b>bagage</b> krijgen voor het vertrekt: koop voertuigen en neem chauffeurs aan</li>
+<li>🤝 Teken <b>contracten met airlines</b> voor vaste dagelijkse vluchten</li>
+<li>🛬 Bouw je platform uit: <b>taxibanen, vliegtuigparkings, hangars, garage, brandweer</b> en later een tweede landingsbaan</li></ul>
 <p style="color:#aeb8c6">Sleep = verschuiven • knijp = zoomen • tik = bouwen (tik 2× om te bevestigen)<br>💾 Je voortgang wordt automatisch bewaard.</p>`}
+${SV&&SV.v<3?`<p><b>🆕 Nieuw:</b> 🤝 contracten met airlines, 🚚 grondafhandeling met voertuigen en chauffeurs, en 🛬 zelf het platform bouwen: taxibanen, vliegtuigparkings met busgates, hangars, garage, brandweer en een tweede landingsbaan.</p>`:''}
 ${SV?`<p>Welkom terug! 💾 Opgeslagen spel: <b>Dag ${SV.day+1}</b> · ${eur(SV.money)} · ${SV.stats.boarded} passagiers</p>
 <button class="b y" style="width:100%;padding:13px;font-size:15px" onclick="$('modal').style.display='none'">▶ Verder spelen</button>
 <button class="b" style="width:100%;padding:11px;margin-top:8px" onclick="newGameAsk()">🔄 Nieuw spel</button>`
