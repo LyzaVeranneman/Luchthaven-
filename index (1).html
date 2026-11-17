@@ -434,15 +434,23 @@ function step(dt){
   for(const s of S.staff)updStaff(s,dt);
   S.rep=Math.max(0,Math.min(100,S.rep));
   if((S.goalT=(S.goalT||0)+dt)>1){S.goalT=0;checkGoals();}
-  if(S.money<-5000&&!S.over){S.over=true;showModal(`<h1>💥 Failliet!</h1><p>Je luchthaven ging bankroet op dag ${S.day+1}.</p><p>${S.stats.boarded} passagiers vlogen met jou mee.</p><button class="b go" style="width:100%" onclick="restart()">Opnieuw beginnen</button>`);}
+  if(S.money<-5000&&!S.over){S.over=true;clearSave();showModal(`<h1>💥 Failliet!</h1><p>Je luchthaven ging bankroet op dag ${S.day+1}.</p><p>${S.stats.boarded} passagiers vlogen met jou mee.</p><button class="b go" style="width:100%" onclick="restart()">Opnieuw beginnen</button>`);}
 }
 
 /* ================= init ================= */
-function init(){
+function init(sv){
   S={money:10000,rep:50,min:360,day:0,speed:1,objs:[],pax:[],staff:[],flights:[],planes:[],floats:[],reviews:[],goals:[],loan:0,nextFlight:368,nid:1,gateNo:0,fc:0,lastAngry:-999,over:false,stats:{boarded:0,missed:0,angry:0,shop:0},ghost:null};
   S.grid=[...Array(GH)].map(()=>Array(GW).fill(null));
   S.litter=[...Array(GH)].map(()=>Array(GW).fill(0));
   recompute();
+  if(sv){
+    for(const k of['money','rep','min','day','reviews','goals','loan','gateNo','fc'])if(sv[k]!==undefined)S[k]=sv[k];
+    Object.assign(S.stats,sv.stats||{});if(sv.litter)S.litter=sv.litter;
+    for(const o of sv.objs||[]){if(place(o.t,o.x,o.y,o.d,true)){const n=S.objs[S.objs.length-1];if(o.n)n.num=o.n;n.dirt=o.dirt||0;}}
+    S.gateNo=Math.max(S.gateNo,sv.gateNo||0);
+    for(const k of sv.staff||[])hire(k);
+    S.nextFlight=S.min+8;
+  }else{
   place('checkin',15,10,0,true);
   place('security',11,6,1,true);
   place('gate',AX,3,3,true);
@@ -450,6 +458,7 @@ function init(){
   place('bench',8,4,0,true);place('bench',8,6,0,true);
   place('plant',17,5,0,true);place('plant',17,11,0,true);
   hire('agent');hire('security');
+  }
   // scenery
   S.trees=[];let tries=0;
   while(S.trees.length<70&&tries++<3000){const x=rnd(-16,GW+16),y=rnd(-12,GH+12);
@@ -458,7 +467,15 @@ function init(){
   S.parked=[];for(let r=0;r<3;r++)for(let i=0;i<8;i++)if(Math.random()<.7)S.parked.push({x:GW+5.2+r*2,y:GH-8.6+i,col:pick(['#ecf0f1','#2d3436','#27ae60','#2980b9','#f1c40f','#c0392b','#16a085','#7f8c8d'])});
   S.cars=[];for(let i=0;i<5;i++)S.cars.push({x:i%2?GW+2.2:GW+3.1,y:rnd(-14,GH+14),v:i%2?-1:1,sp:rnd(2,3.2),col:pick(['#ecf0f1','#2d3436','#e74c3c','#2980b9','#f1c40f','#27ae60'])});
 }
-function restart(){$('modal').style.display='none';init();fitCam();}
+const SAVE_KEY='luchthaven_tycoon_v1';
+function saveGame(){if(!S||S.over)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify({v:1,money:S.money,rep:S.rep,min:S.min,day:S.day,stats:S.stats,reviews:S.reviews,goals:S.goals,loan:S.loan,gateNo:S.gateNo,fc:S.fc,litter:S.litter,
+  objs:S.objs.map(o=>({t:o.type,x:o.x,y:o.y,d:o.dir,n:o.num,dirt:o.dirt})),staff:S.staff.map(s=>s.kind)}));S.savedAt=Date.now();}catch(e){}}
+function loadSave(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));return s&&s.v==1?s:null;}catch(e){return null;}}
+function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
+function restart(){$('modal').style.display='none';clearSave();init();fitCam();saveGame();}
+function newGameAsk(){showModal(`<h1>🔄 Nieuw spel?</h1><p>Je huidige luchthaven wordt gewist. Dit kan je niet ongedaan maken.</p><div class="row"><button class="b" onclick="$('modal').style.display='none'">Annuleren</button><button class="b red" onclick="restart()">Ja, opnieuw</button></div>`);}
+addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden')saveGame();});
+addEventListener('pagehide',saveGame);
 
 /* ================= rendering ================= */
 function P(x,y,z=0){return[(x-y)*TW/2,(x+y)*TH/2-z];}
@@ -648,7 +665,9 @@ function renderPanel(){
     const a=alerts();el.innerHTML=`<h3>MELDINGEN</h3>`+(a.length?a.map(x=>`<div class="cmp"><span>${x}</span></div>`).join(''):'<div class="hint">Alles loopt gesmeerd 👌</div>');
   }else if(panel=='bank'){
     el.innerHTML=`<h3>BANK</h3><div>Openstaande lening: <b>${eur(S.loan)}</b><br><small style="color:#aeb8c6">Rente 1% per dag. Max. €20.000. Onder −€5.000 cash ben je failliet.</small></div>
-    <div class="row"><button class="b go" data-a="loan">Leen €5.000</button><button class="b" data-a="repay">Los €5.000 af</button></div>`;
+    <div class="row"><button class="b go" data-a="loan">Leen €5.000</button><button class="b" data-a="repay">Los €5.000 af</button></div>
+    <h3 style="margin-top:14px">SPEL</h3><div class="hint" style="margin-top:0">💾 Je voortgang wordt automatisch opgeslagen in deze browser${S.savedAt?` (laatst om ${new Date(S.savedAt).toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'})})`:''}.</div>
+    <div class="row"><button class="b" data-a="save">💾 Nu opslaan</button><button class="b red" data-a="newgame">🔄 Nieuw spel</button></div>`;
   }
 }
 $('panel').addEventListener('click',e=>{
@@ -661,6 +680,8 @@ $('panel').addEventListener('click',e=>{
   else if(a=='hire')hire(b.dataset.k);
   else if(a=='fire')fire(b.dataset.k);
   else if(a=='loan'){if(S.loan>=20000)toast('🏦 Maximum lening bereikt');else{S.loan+=5000;S.money+=5000;}}
+  else if(a=='save'){saveGame();toast('💾 Opgeslagen');}
+  else if(a=='newgame'){newGameAsk();return;}
   else if(a=='repay'){if(S.loan<=0)toast('🏦 Geen lening');else if(S.money<5000)toast('💸 Niet genoeg cash');else{S.loan-=5000;S.money-=5000;}}
   renderPanel();updHud();
 });
@@ -716,24 +737,29 @@ cv.addEventListener('wheel',e=>{e.preventDefault();const wx=e.clientX/cam.s+cam.
 let lastOri=innerWidth>innerHeight;addEventListener('resize',()=>{resize();const o=innerWidth>innerHeight;if(o!==lastOri){lastOri=o;fitCam();}});
 
 /* ================= loop ================= */
-let last=performance.now(),uiT=0;
+let last=performance.now(),uiT=0,saveT=0;
 function frame(now){
   const rdt=Math.min(.1,(now-last)/1000);last=now;
   if(!S.over&&S.speed>0&&$('modal').style.display=='none'){let sim=rdt*S.speed;while(sim>1e-6){const d=Math.min(.05,sim);step(d);sim-=d;}}
   for(const c of S.cars){c.y+=c.v*c.sp*rdt;if(c.y>GH+16)c.y=-16;if(c.y<-16)c.y=GH+16;}
   for(const f of S.floats)f.t+=rdt;S.floats=S.floats.filter(f=>f.t<1.5);
+  if((saveT+=rdt)>15){saveT=0;if($('modal').style.display=='none')saveGame();}
   draw();uiT+=rdt;if(uiT>.3){uiT=0;updHud();if(['staff','flights','stars','goals','alerts','bank'].includes(panel))renderPanel();}
   requestAnimationFrame(frame);
 }
-init();resize();fitCam();updHud();
-showModal(`<h1>✈️ Luchthaven Tycoon</h1><p>Bouw en run je eigen luchthaven, in de geest van Theme Hospital!</p><ul>
+const SV=loadSave();
+init(SV);resize();fitCam();updHud();
+showModal(`<h1>✈️ Luchthaven Tycoon</h1><p>Bouw en run je eigen luchthaven, in de geest van Theme Hospital!</p>${SV?'':`<ul>
 <li>Reizigers gaan: <b>🛄 Inchecken → 🛃 Security → 🛫 Gate</b></li>
 <li>Balies en security werken enkel met <b>personeel</b></li>
 <li>☕🍔 Eten, 🛍️ winkels, 🚻 toiletten, 💺 zitjes en 🥂 een lounge houden reizigers blij — en brengen geld op</li>
 <li>🧹 Schoonmakers ruimen afval op en poetsen de toiletten</li>
 <li>Elke passagier aan boord = <b>€30</b>. Reizigers geven ⭐ reviews: die bepalen je reputatie en dus hoeveel vluchten je krijgt.</li></ul>
-<p style="color:#aeb8c6">Sleep = verschuiven • knijp = zoomen • tik = bouwen (tik 2× om te bevestigen)</p>
-<button class="b y" style="width:100%;padding:13px;font-size:15px" onclick="$('modal').style.display='none';toast('💡 Tip: bouw een koffiebar na de security en neem een schoonmaker aan')">Start!</button>`);
+<p style="color:#aeb8c6">Sleep = verschuiven • knijp = zoomen • tik = bouwen (tik 2× om te bevestigen)<br>💾 Je voortgang wordt automatisch bewaard.</p>`}
+${SV?`<p>Welkom terug! 💾 Opgeslagen spel: <b>Dag ${SV.day+1}</b> · ${eur(SV.money)} · ${SV.stats.boarded} passagiers</p>
+<button class="b y" style="width:100%;padding:13px;font-size:15px" onclick="$('modal').style.display='none'">▶ Verder spelen</button>
+<button class="b" style="width:100%;padding:11px;margin-top:8px" onclick="newGameAsk()">🔄 Nieuw spel</button>`
+:`<button class="b y" style="width:100%;padding:13px;font-size:15px" onclick="$('modal').style.display='none';saveGame();toast('💡 Tip: bouw een koffiebar na de security en neem een schoonmaker aan')">Start!</button>`}`);
 requestAnimationFrame(frame);
 </script>
 </body>
