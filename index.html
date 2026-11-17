@@ -542,7 +542,7 @@ function init(sv){
   setOwned();recompute();
   if(sv){
     for(const k of['money','rep','min','day','reviews','goals','loan','gateNo','fc','xp','level','runway','rwLv'])if(sv[k]!==undefined)S[k]=sv[k];
-    Object.assign(S.stats,sv.stats||{});if(sv.litter)S.litter=sv.litter;
+    Object.assign(S.stats,sv.stats||{});if(sv.litter)sv.litter.forEach((r,y)=>{if(y<GH&&Array.isArray(r))r.forEach((v,x)=>{if(x<GW)S.litter[y][x]=+v||0;});});
     for(const o of sv.objs||[]){if(place(o.t,o.x,o.y,o.d,true)){const n=S.objs[S.objs.length-1];if(o.n)n.num=o.n;n.dirt=o.dirt||0;n.lv=o.lv||1;}}
     if(sv.xp===undefined){S.xp=S.stats.boarded;while(S.level<MAXLV&&S.xp>=XPN(S.level+1))S.level++;}
     S.gateNo=Math.max(S.gateNo,sv.gateNo||0);
