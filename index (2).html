@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Luchthaven Tycoon</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#8cc075;font-family:-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#hud{position:fixed;top:6px;left:6px;right:6px;z-index:5;display:flex;flex-direction:column;gap:5px;pointer-events:none}
+.hrow{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.chip{pointer-events:auto;background:rgba(28,34,46,.92);color:#fff;border-radius:11px;padding:6px 9px;font-weight:700;font-size:13px;display:flex;align-items:center;gap:5px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.25);border:0}
+.chip small{font-weight:600;color:#aeb8c6;font-size:10px;letter-spacing:.5px}
+.chip.name{background:#f4c84a;color:#222}
+.chip.gold{box-shadow:0 0 0 2px #f4c84a inset}
+.spd{display:flex;background:rgba(28,34,46,.92);border-radius:11px;padding:3px;gap:2px;pointer-events:auto}
+.spd button{border:0;background:none;color:#fff;font-size:13px;font-weight:800;padding:4px 8px;border-radius:8px}
+.spd button.on{background:#f4c84a;color:#222}
+#bar{position:fixed;bottom:0;left:0;right:0;z-index:6;display:flex;gap:6px;padding:6px;overflow-x:auto;background:rgba(28,34,46,.94);touch-action:pan-x}
+#bar button{flex:0 0 auto;border:0;border-radius:12px;background:#2c3646;color:#fff;font-weight:700;font-size:13px;padding:9px 11px;display:flex;align-items:center;gap:6px}
+#bar button.on{background:#f4c84a;color:#222}
+#bar button span{font-size:18px}
+#panel{position:fixed;left:6px;right:6px;bottom:62px;max-height:48vh;overflow:auto;z-index:6;background:rgba(28,34,46,.96);color:#fff;border-radius:16px;padding:12px;display:none;font-size:14px;box-shadow:0 4px 18px rgba(0,0,0,.35);touch-action:pan-y}
+@media(max-width:560px){.chip{padding:5px 7px;font-size:12px}.chip small{display:none}.chip.name{display:none}.spd button{padding:3px 6px;font-size:12px}#hud{gap:4px}}
+@media(min-width:760px){#panel{left:auto;width:380px;top:110px;bottom:auto;max-height:calc(100vh - 190px)}}
+#panel h3{margin:0 0 8px;font-size:15px;color:#f4c84a;letter-spacing:.5px}
+.items{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;touch-action:pan-x}
+@media(min-width:760px){.items{flex-wrap:wrap}}
+.item{flex:0 0 86px;background:#2c3646;border-radius:12px;padding:8px 4px;text-align:center;border:2px solid transparent}
+.item.sel{border-color:#f4c84a;background:#3a4659}.item.poor{opacity:.45}
+.item .e{font-size:26px}.item .n{font-size:11px;margin-top:3px;line-height:1.2}.item .p{font-size:11px;color:#8fe39b;margin-top:2px}
+.row{display:flex;gap:8px;margin-top:10px}
+.b{flex:1;padding:10px;border:0;border-radius:10px;background:#2c3646;color:#fff;font-size:13px;font-weight:700}
+.b.go{background:#2e9e5b}.b.red{background:#b8433b}.b.y{background:#f4c84a;color:#222}
+.hint{font-size:12px;color:#aeb8c6;margin-top:8px;line-height:1.4}
+.srow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #2c3646}
+.srow .e{font-size:28px}.srow .t{flex:1}.srow small{color:#aeb8c6}
+.srow button{width:42px;height:38px;border:0;border-radius:9px;font-size:19px;font-weight:800;color:#fff}
+.star{color:#f4c84a}
+.dist{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px}
+.dist .bar{flex:1;height:6px;background:#3a4659;border-radius:3px;overflow:hidden}.dist .bar i{display:block;height:100%;background:#57c26a}
+.cmp{display:flex;justify-content:space-between;background:#2c3646;border-radius:10px;padding:9px 11px;margin:6px 0}
+.cmp b{color:#ff6b6b}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:6px 3px;text-align:left;border-bottom:1px solid #2c3646}
+th{color:#f4c84a;font-weight:700}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.goal{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #2c3646}
+.goal.done{opacity:.5}
+#toast{position:fixed;bottom:70px;left:8px;right:8px;z-index:7;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:5px}
+#toast div{background:rgba(28,34,46,.93);color:#fff;padding:9px 14px;border-radius:14px;font-size:13px;max-width:560px;transition:opacity .5s;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9;padding:16px}
+#modal .box{background:#1c2230;color:#fff;border-radius:18px;padding:22px;max-width:440px;width:100%;font-size:14px;line-height:1.5;max-height:90vh;overflow:auto}
+#modal h1{margin:0 0 6px;font-size:23px}
+#modal ul{padding-left:18px;margin:8px 0}
+@media (orientation:landscape) and (max-height:520px){
+#hud{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;top:4px;left:4px;right:4px;gap:4px;pointer-events:auto;scrollbar-width:none}
+#hud::-webkit-scrollbar{display:none}
+.hrow{flex-wrap:nowrap;gap:4px}
+.chip{padding:4px 7px;font-size:11.5px;border-radius:9px}.chip small,.chip.name{display:none}
+.spd{padding:2px;border-radius:9px}.spd button{padding:2px 6px;font-size:11px}
+#bar{padding:4px;gap:4px}#bar button{padding:5px 9px;font-size:11.5px;border-radius:9px;gap:4px}#bar button span{font-size:14px}
+#panel{left:auto;right:4px;width:330px;top:38px;bottom:auto;max-height:calc(100vh - 86px);padding:10px;font-size:13px}
+.items{flex-wrap:wrap}.item{flex:0 0 74px;padding:5px 3px}.item .e{font-size:21px}
+#toast{bottom:48px}#toast div{padding:6px 11px;font-size:12px}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div class="hrow">
+    <div class="chip name">✈️ Mijn Luchthaven</div>
+    <div class="chip"><small>CASH</small><span id="money">€0</span></div>
+    <div class="chip"><small>REPUTATIE</small><span id="rep">50%</span></div>
+    <div class="chip"><small>AAN BOORD</small><span id="boarded">0</span></div>
+    <div class="chip" id="clock">Dag 1</div>
+  </div>
+  <div class="hrow">
+    <div class="spd" id="spd"><button data-s="0">⏸</button><button data-s="1" class="on">▶</button><button data-s="2">▶▶</button><button data-s="4">▶▶▶</button></div>
+    <button class="chip" id="cLvl">🏅 <span id="lvlTxt">1</span><span style="display:inline-block;width:38px;height:6px;background:#3a4659;border-radius:3px;overflow:hidden"><i id="lvlBar" style="display:block;height:100%;width:0;background:#f4c84a"></i></span></button>
+    <button class="chip" id="cGoal">🎯 <span id="goalTxt">0/9</span></button>
+    <button class="chip" id="cNext">🛫 <span id="nextTxt">–</span></button>
+    <button class="chip" id="cRw">🛬 <span id="rwTxt">100%</span></button>
+    <button class="chip gold" id="cStars">⭐ <span id="starTxt">–</span></button>
+    <button class="chip" id="cAlert">🔔 <span id="alertTxt">0</span></button>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="panel"></div>
+<div id="bar">
+  <button data-p="basis"><span>🧭</span>Basis</button>
+  <button data-p="eten"><span>🍔</span>Eten</button>
+  <button data-p="winkels"><span>🛍️</span>Winkels</button>
+  <button data-p="comfort"><span>🛋️</span>Comfort</button>
+  <button data-p="extra"><span>🪴</span>Extra</button>
+  <button data-p="grond"><span>🗺️</span>Uitbreiden</button>
+  <button data-p="platform"><span>🛬</span>Platform</button>
+  <button data-p="staff"><span>👥</span>Personeel</button>
+  <button data-p="flights"><span>🛫</span>Vluchten</button>
+  <button data-p="bank"><span>🏦</span>Bank</button>
+  <button data-p="sloop"><span>🧨</span>Slopen</button>
+</div>
+<div id="modal"></div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('c'),ctx=cv.getContext('2d');
+/* ================= constants ================= */
+const GW=20,GH=72,AX=3,TW=64,TH=32;
+const TERMS=[{n:'Terminal 1',y0:0,y1:32,door:[15,16]},{n:'Terminal 2',y0:36,y1:52,door:[43,44],lv:9,c:40000},{n:'Terminal 3',y0:56,y1:72,door:[63,64],lv:13,c:90000}];
+const DEPOT_Y=[-3,33.5,53.5];
+const PLOTS=[{y0:4,y1:8,c:6000,n:'Noord 1',req:-1},{y0:0,y1:4,c:12000,n:'Noord 2',req:0},{y0:24,y1:28,c:6000,n:'Zuid 1',req:-1},{y0:28,y1:32,c:12000,n:'Zuid 2',req:2}];
+const DOOR_Y=[15,16],PY0=DOOR_Y[0]-1;
+const D=[[0,1],[-1,0],[0,-1],[1,0]];
+const EMO='"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+const TYPES={
+  checkin:{n:'Incheckbalie',e:'🛄',c:600,sz:2,staff:'agent',svc:2.2,col:'#3f7fd6',cat:'basis',d:'Passagiers checken hier in. Heeft een baliemedewerker nodig.'},
+  security:{n:'Security',e:'🛃',c:1500,sz:2,staff:'security',svc:2.8,col:'#d0524a',cat:'basis',d:'Na het inchecken. Heeft een beveiliger nodig.'},
+  gate:{n:'Gate',e:'🛫',c:3000,sz:3,col:'#2f9e6a',cat:'basis',d:'Enkel tegen het platform (linkerrand). Met 6 zitjes.'},
+  cafe:{n:'Koffiebar',e:'☕',c:800,sz:2,svc:2,col:'#a0673a',earn:6,food:1,treat:1,cat:'eten'},
+  burger:{n:'Burgerbar',e:'🍔',c:1400,sz:2,svc:2.6,col:'#e0703a',earn:11,food:1,treat:1,cat:'eten'},
+  vending:{n:'Automaat',e:'🥤',c:250,sz:1,svc:1.2,col:'#c0392b',earn:3,food:1,cat:'eten'},
+  shop:{n:'Souvenirs',e:'🧸',c:1100,sz:2,svc:2,col:'#d6589a',earn:12,shop:1,treat:1,cat:'winkels'},
+  dutyfree:{n:'Duty Free',e:'🛍️',c:2200,sz:2,svc:2.4,col:'#7d4fc4',earn:22,shop:1,treat:1,cat:'winkels'},
+  toilet:{n:'Toiletten',e:'🚻',c:500,sz:2,svc:1.6,col:'#2fa7c9',cat:'comfort',d:'Worden vuil: neem schoonmakers aan.'},
+  bench:{n:'Zitjes',e:'💺',c:120,sz:1,col:'#3b5bdb',cat:'comfort'},
+  lounge:{n:'Business lounge',e:'🥂',c:2600,sz:3,svc:4,col:'#9c2f45',earn:18,treat:1,cat:'comfort',d:'Business-reizigers willen een lounge.'},
+  atm:{n:'Geldautomaat',e:'🏧',c:400,sz:1,svc:1.2,col:'#2e86de',earn:4,shop:1,cat:'winkels'},
+  pharmacy:{n:'Apotheek',e:'💊',c:1600,sz:2,svc:2,col:'#27ae60',earn:15,shop:1,cat:'winkels'},
+  tech:{n:'Elektronica',e:'🎧',c:3000,sz:2,svc:2.5,col:'#34495e',earn:32,shop:1,treat:1,cat:'winkels'},
+  sushi:{n:'Sushibar',e:'🍣',c:2400,sz:2,svc:2.4,col:'#e17055',earn:16,food:1,treat:1,cat:'eten'},
+  restaurant:{n:'Restaurant',e:'🍝',c:3500,sz:3,svc:4,col:'#b03a2e',earn:28,food:1,treat:1,cat:'eten'},
+  play:{n:'Speelhoek',e:'🛝',c:1200,sz:2,svc:5,col:'#f39c12',fun:1,cat:'comfort',d:'Kinderen en ouders worden er vrolijk van.'},
+  massage:{n:'Massagestoel',e:'💆',c:700,sz:1,svc:3,col:'#8e44ad',earn:8,fun:1,cat:'comfort'},
+  fountain:{n:'Fontein',e:'⛲',c:900,sz:2,col:'#5dade2',cat:'extra',noacc:1,d:'Maakt reizigers in een grote straal blij.'},
+  plant:{n:'Plant',e:'🪴',c:60,sz:1,col:'#4f9a46',cat:'extra',noacc:1,d:'Maakt reizigers in de buurt blij.'},
+  bin:{n:'Vuilbak',e:'🗑️',c:60,sz:1,col:'#7a8088',cat:'extra',noacc:1,d:'Minder afval in de buurt.'}
+};
+const SLOTS={checkin:[[.35,0]],security:[[.25,0]],cafe:[[.2,-.45],[.2,.45]],burger:[[.2,-.45],[.2,.45]],vending:[[.42,0]],shop:[[.1,-.4],[.1,.4]],dutyfree:[[.1,-.4],[.1,.4]],
+  toilet:[[-.5,-.55],[-.5,0],[-.5,.55]],lounge:[[-.3,-.9],[-.3,-.3],[-.3,.3],[-.3,.9]],
+  atm:[[.42,0]],pharmacy:[[.1,-.4],[.1,.4]],tech:[[.1,-.4],[.1,.4]],sushi:[[.2,-.45],[.2,.45]],restaurant:[[.3,-.8],[.3,0],[.3,.8],[-.5,-.4],[-.5,.4]],play:[[.3,-.5],[.3,.5],[-.3,0]],massage:[[.1,0]]};
+const SEATS={gate:[[.2,-.8],[.2,0],[.2,.8],[-.55,-.8],[-.55,0],[-.55,.8]],bench:[[0,-.22],[0,.22]]};
+const STAFFPOS={checkin:[-.42,0],security:[-.25,.62]};
+const FURN={
+  checkin:[[-.1,0,.32,1.3,16,'#e3e9f0'],[-.1,-.78,.3,.22,6,'#4a4f57']],
+  security:[[-.15,-.45,1.3,.36,16,'#7b8794'],[.25,.05,.08,.08,32,'#3d4450'],[.25,.6,.08,.08,32,'#3d4450'],[.25,.32,.1,.62,6,'#3d4450',32]],
+  cafe:[[-.5,0,.3,1.4,16,'#7b4a24'],[.6,-.62,.3,.3,10,'#f2f2f2'],[.6,.62,.3,.3,10,'#f2f2f2']],
+  burger:[[-.5,0,.3,1.4,16,'#b83226'],[-.78,0,.12,1.2,26,'#f1c40f'],[.6,-.62,.3,.3,10,'#f2f2f2'],[.6,.62,.3,.3,10,'#f2f2f2']],
+  vending:[[-.12,0,.45,.6,30,'#c0392b']],
+  shop:[[-.66,0,.24,1.6,22,'#f5b041'],[.1,-.85,1.1,.18,18,'#58d68d'],[.55,.65,.3,.3,12,'#ffffff']],
+  dutyfree:[[-.66,0,.24,1.6,22,'#d4ac0d'],[.1,-.85,1.1,.18,18,'#bb8fce'],[.55,.65,.3,.3,12,'#ffffff']],
+  toilet:[[-.5,-.82,.6,.04,26,'#ffffff'],[-.5,-.27,.6,.04,26,'#ffffff'],[-.5,.27,.6,.04,26,'#ffffff'],[-.5,.82,.6,.04,26,'#ffffff'],[.62,0,.2,.9,10,'#dfe6ee']],
+  lounge:[[-.3,-.6,.38,1.0,9,'#8e2b3f'],[-.3,.6,.38,1.0,9,'#8e2b3f'],[-1.18,0,.3,2.4,16,'#5d4037'],[.45,0,.4,.4,8,'#e8e8e8'],[1.05,1.0,.3,.3,14,'#3f7a3a']],
+  gate:[[-.85,0,.12,2.5,12,'#2c46b8'],[1.0,1.0,.35,.6,14,'#e3e9f0']],
+  bench:[[-.2,0,.08,.85,15,'#2c46b8']],
+  atm:[[-.12,0,.35,.5,28,'#2e86de']],
+  pharmacy:[[-.66,0,.24,1.6,22,'#ffffff'],[.1,-.85,1.1,.18,18,'#58d68d'],[.55,.65,.3,.3,12,'#27ae60']],
+  tech:[[-.66,0,.24,1.6,24,'#2c3e50'],[.1,-.85,1.1,.18,14,'#5dade2'],[.55,.65,.3,.3,12,'#ecf0f1']],
+  sushi:[[-.5,0,.3,1.4,14,'#e8d5b5'],[-.5,0,.1,1.2,4,'#e17055',14],[.6,-.62,.3,.3,10,'#3d3d3d'],[.6,.62,.3,.3,10,'#3d3d3d']],
+  restaurant:[[-1.15,0,.3,2.4,16,'#6e2c00'],[.3,-.4,.45,.45,10,'#f5f5f5'],[.3,.4,.45,.45,10,'#f5f5f5'],[-.4,0,.45,.45,10,'#f5f5f5'],[1.0,-1.0,.3,.3,14,'#3f7a3a']],
+  play:[[-.5,-.5,.5,.5,8,'#e74c3c'],[-.5,-.5,.3,.3,22,'#f1c40f',8],[.4,.6,.5,.25,6,'#3498db'],[-.3,.55,.35,.35,12,'#2ecc71']],
+  massage:[[-.15,0,.45,.5,14,'#6c3483']],
+  fountain:[[0,0,1.6,1.6,8,'#bdc3c7'],[0,0,1.3,1.3,1,'#5dade2',8],[0,0,.3,.3,18,'#ecf0f1',8],[0,0,.14,.14,8,'#aed6f1',26]],
+  plant:[[0,0,.34,.34,10,'#8d6e63']],
+  bin:[[0,0,.3,.3,14,'#6d737b']]
+};
+const STAFF={agent:{n:'Baliemedewerker',e:'👩‍💼',sal:150,d:'Bemant een incheckbalie',shirt:'#1f5fae'},security:{n:'Beveiliger',e:'👮',sal:200,d:'Bemant een security-poort',shirt:'#283646'},cleaner:{n:'Schoonmaker',e:'🧹',sal:100,d:'Ruimt afval op en poetst toiletten',shirt:'#2e9e5b'}};
+const DESTS=['Barcelona','Rome','Londen','Parijs','Lissabon','Berlijn','Malaga','Istanbul','Wenen','Dublin','Kopenhagen','Athene','Tenerife','New York','Dubai','Marrakech','Praag','Oslo'];
+const COLS=['#e74c3c','#3498db','#f1c40f','#9b59b6','#1abc9c','#e67e22','#2ecc71','#fd79a8','#34495e'];
+const SHIRTS=['#e74c3c','#3498db','#f39c12','#8e44ad','#16a085','#d35400','#27ae60','#e84393','#2d3436','#fdcb6e','#74b9ff','#ffffff'];
+const SKIN=['#f5d0b0','#e8b48a','#c68642','#8d5524','#f1c27d','#ffdbac'];
+const HAIR=['#2d1e12','#5b3a1a','#d9b45a','#111','#8b4513','#bbb'];
+const COMPL={delay:'Vertraging: vliegtuig niet getankt',missed:'Vlucht gemist. Nooit meer!',angry:'Ben weggegaan, belachelijk lang',queue:'Eindeloos aanschuiven aan de balie',sec:'Security duurde een eeuwigheid',wc:'Vieze toiletten, walgelijk',dirty:'Overal afval op de vloer',hungry:'Nergens iets te eten',toilet:'Geen toilet te vinden…',lounge:'Business ticket, maar geen lounge',seat:'Geen stoel aan de gate'};
+const CPRIO=['missed','angry','delay','queue','sec','wc','dirty','hungry','toilet','lounge','seat'];
+const RTXT=['','Nooit meer.','Kan echt beter.','Oké, niks speciaals.','Drie sterren. Nee, toch vier.','Topluchthaven! ✈️'];
+const rnd=(a,b)=>a+Math.random()*(b-a),ri=(a,b)=>Math.floor(rnd(a,b+1)),pick=a=>a[ri(0,a.length-1)];
+let S,W=1,H=1,DPR=1,cam={x:0,y:0,s:.6},panel=null,buildSel=null,buildDir=0;
+
+/* ================= grid & paths ================= */
+function kind(x,y){if(x<0||y<0||x>=GW||y>=GH)return'out';if(x<AX)return'apron';return TERMS.some(t=>y>=t.y0&&y<t.y1)?'floor':'gap';}
+const termOf=y=>Math.max(0,TERMS.findIndex(t=>y>=t.y0&&y<t.y1));
+const doorOf=y=>TERMS[termOf(y)].door;
+const ownedTerms=()=>TERMS.map((t,i)=>i).filter(i=>i==0||S.terms[i]);
+const termRange=i=>i==0?[S.oy0,S.oy1]:[TERMS[i].y0,TERMS[i].y1];
+const isEntrance=(x,y)=>x==GW-1&&TERMS.some(t=>t.door.includes(y));
+function walkable(x,y){return kind(x,y)=='floor'&&S.own[y]&&!S.grid[y][x];}
+const owned=y=>!!(S.own&&S.own[y]);
+function setOwned(){let a=8,b=24;PLOTS.forEach((p,i)=>{if(S.plots[i]){a=Math.min(a,p.y0);b=Math.max(b,p.y1);}});S.oy0=a;S.oy1=b;S.own=Array(GH).fill(false);for(const i of ownedTerms()){const[r0,r1]=termRange(i);for(let y=r0;y<r1;y++)S.own[y]=true;}}
+function buyTerm(i){const t=TERMS[i];if(S.terms[i])return;if(S.level<t.lv){toast(`🔒 ${t.n} kan je bouwen vanaf level ${t.lv}`);return;}if(i>1&&!S.terms[i-1]){toast('🔒 Bouw eerst '+TERMS[i-1].n);return;}if(S.money<t.c){toast(`💸 Niet genoeg geld (€${t.c.toLocaleString('nl-BE')} nodig)`);return;}
+  S.money-=t.c;S.terms[i]=true;setOwned();addXP(30);showModal(`<h1>🏢 ${t.n} geopend!</h1><p>Een gloednieuwe, lege terminal met een eigen ingang. Bouw er balies, security en gates. Reizigers van gates in deze terminal komen via de eigen ingang.</p><p>💡 Personeel en schoonmakers pendelen automatisch tussen terminals waar werk is.</p><button class="b y" style="width:100%;padding:12px" onclick="$('modal').style.display='none';focusTerm(${i})">📍 Bekijk ${t.n}</button>`);saveGame();}
+const plotAt=y=>PLOTS.findIndex(p=>y>=p.y0&&y<p.y1);
+const XPN=n=>Math.round(30*Math.pow(n-1,2)),MAXLV=15;
+const UNLOCK={cafe:2,vending:2,shop:3,atm:3,burger:4,play:5,lounge:6,fountain:6,dutyfree:7,massage:7,pharmacy:8,restaurant:9,tech:11,sushi:12};
+const RW_LV=7;
+const PLOT_LV=[4,8,5,10],UPG_LV=[0,0,3,6],GATECAP=[0,18,30,45],PLSC=[0,.8,1,1.22];
+const lockLv=k=>UNLOCK[k]||1;
+const canUpg=o=>!!(TYPES[o.type].svc||o.type=='gate');
+const upCost=o=>Math.round(TYPES[o.type].c*((o.lv||1)==1?.8:1.6)/10)*10;
+const DIFF=()=>1+(S.level-1)*.1;
+const svcTime=o=>TYPES[o.type].svc/(1+.35*((o.lv||1)-1));
+const earnOf=o=>Math.round((TYPES[o.type].earn||0)*(1+.4*((o.lv||1)-1)));
+function addXP(n){S.xp+=n;while(S.level<MAXLV&&S.xp>=XPN(S.level+1)){S.level++;levelUp();}}
+function unlocksAt(L){const un=Object.entries(UNLOCK).filter(([k,v])=>v==L).map(([k])=>TYPES[k].e+' '+TYPES[k].n);PLOT_LV.forEach((v,i)=>{if(v==L)un.push('🗺️ Grond '+PLOTS[i].n);});if(UPG_LV[2]==L)un.push('⬆️ Gebouwen upgraden naar ★★');if(UPG_LV[3]==L)un.push('⬆️ Gebouwen upgraden naar ★★★');if(RW_LV==L)un.push('🛬 Versterkte landingsbaan');TERMS.forEach(t=>{if(t.lv==L)un.push('🏢 '+t.n);});return un;}
+function levelUp(){const L=S.level,un=unlocksAt(L),r=300*L;S.money+=r;saveGame();
+  showModal(`<h1>🏅 Level ${L}!</h1><p>Je luchthaven groeit! Bonus: <b style="color:#8fe39b">+€${r.toLocaleString('nl-BE')}</b></p>${un.length?`<p style="margin-bottom:0"><b>Nieuw ontgrendeld:</b></p><ul>${un.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}<p style="color:#f4c84a">⚠️ Het wordt moeilijker: meer en grotere vluchten, ongeduldigere reizigers en hogere verwachtingen.</p><button class="b y" style="width:100%;padding:12px" onclick="$('modal').style.display='none'">Verder!</button>`);}
+function upgrade(o){const lv=o.lv||1;if(lv>=3)return;if(S.level<UPG_LV[lv+1]){toast(`🔒 Upgrade naar ${'★'.repeat(lv+1)} kan vanaf level ${UPG_LV[lv+1]}`);return;}const c=upCost(o);if(S.money<c){toast('💸 Niet genoeg geld');return;}
+  S.money-=c;o.lv=lv+1;floatTxt(o.x+o.sz/2,o.y+o.sz/2,40,'⬆️ '+'★'.repeat(o.lv),'#f4c84a');addXP(5);saveGame();}
+const plotBuyable=i=>!S.plots[i]&&(PLOTS[i].req<0||S.plots[PLOTS[i].req]);
+function buyPlot(i){const p=PLOTS[i];if(S.plots[i])return;if(S.level<PLOT_LV[i]){toast(`🔒 Deze grond kan je kopen vanaf level ${PLOT_LV[i]}`);return;}if(!plotBuyable(i)){toast('🔒 Koop eerst '+PLOTS[p.req].n);return;}if(S.money<p.c){toast('💸 Niet genoeg geld (€'+p.c.toLocaleString('nl-BE')+' nodig)');return;}
+  S.money-=p.c;S.plots[i]=true;setOwned();toast(`🗺️ Grond ${p.n} gekocht! Je terminal is groter.`);floatTxt(GW/2+1.5,(p.y0+p.y1)/2,20,'-€'+p.c.toLocaleString('nl-BE'),'#ff8a8a');saveGame();}
+function acc(o){if(TYPES[o.type].noacc)return null;const n=o.sz,k=Math.floor(n/2);return[[o.x+k,o.y+n],[o.x-1,o.y+k],[o.x+k,o.y-1],[o.x+n,o.y+k]][o.dir];}
+function L(o,a,b){const f=D[o.dir],r=[-f[1],f[0]],c=o.sz/2;return[o.x+c+f[0]*a+r[0]*b,o.y+c+f[1]*a+r[1]*b];}
+function bfs(sx,sy){
+  sx=Math.max(0,Math.min(GW-1,sx));sy=Math.max(0,Math.min(GH-1,sy));
+  const dist=new Int16Array(GW*GH).fill(-1),prev=new Int16Array(GW*GH).fill(-1),st=sy*GW+sx,q=[st];dist[st]=0;let h=0;
+  while(h<q.length){const c=q[h++],cx=c%GW,cy=(c/GW)|0;for(const[dx,dy]of D){const nx=cx+dx,ny=cy+dy;if(!walkable(nx,ny))continue;const n=ny*GW+nx;if(dist[n]>=0)continue;dist[n]=dist[c]+1;prev[n]=c;q.push(n);}}
+  return{dist,prev,st};
+}
+function pathFrom(b,tx,ty){if(tx<0||ty<0||tx>=GW||ty>=GH)return null;let n=ty*GW+tx;if(b.dist[n]<0)return null;const p=[];while(n!==b.st){p.push([n%GW,(n/GW)|0]);n=b.prev[n];}return p.reverse();}
+const tile=e=>[Math.floor(e.x),Math.floor(e.y)];
+function goTo(e,tx,ty,cb){const[sx,sy]=tile(e),p=pathFrom(bfs(sx,sy),tx,ty);if(!p)return false;e.path=p;e.onArrive=cb;return true;}
+function move(e,dt,spd){
+  if(!e.path)return;
+  if(!e.path.length){e.path=null;const cb=e.onArrive;e.onArrive=null;cb&&cb();return;}
+  const[nx,ny]=e.path[0];if(!walkable(nx,ny)){e.path=null;e.onArrive=null;e.blocked=true;return;}
+  const tx=nx+.5,ty=ny+.5,dx=tx-e.x,dy=ty-e.y,d=Math.hypot(dx,dy),st=spd*dt;e.walkT=(e.walkT||0)+dt;
+  if(d<=st){e.x=tx;e.y=ty;e.path.shift();if(!e.path.length){e.path=null;const cb=e.onArrive;e.onArrive=null;cb&&cb();}}else{e.x+=dx/d*st;e.y+=dy/d*st;}
+}
+
+/* ================= building ================= */
+function canPlace(type,x,y,dir){
+  const t=TYPES[type],n=t.sz;
+  for(let j=0;j<n;j++)for(let i=0;i<n;i++){const X=x+i,Y=y+j;if(kind(X,Y)=='floor'&&!owned(Y))return'Deze grond is nog niet van jou — koop hem via 🗺️ Uitbreiden';if(kind(X,Y)!='floor'||S.grid[Y][X]||isEntrance(X,Y))return'Hier is geen plaats';}
+  if(type=='gate'&&x!=AX)return'Een gate moet tegen het platform (linkerrand)';
+  const tmp={type,x,y,dir,sz:n},a=acc(tmp);
+  if(a&&(kind(a[0],a[1])!='floor'||!owned(a[1])||S.grid[a[1]][a[0]]))return'De ingang (gele pijl) is geblokkeerd';
+  for(const o of S.objs){const q=acc(o);if(q&&q[0]>=x&&q[0]<x+n&&q[1]>=y&&q[1]<y+n)return'Je blokkeert de ingang van iets anders';}
+  for(let j=0;j<n;j++)for(let i=0;i<n;i++)S.grid[y+j][x+i]=tmp;
+  const reach=new Uint8Array(GW*GH);for(const ti of ownedTerms()){const bb=bfs(GW-1,TERMS[ti].door[0]);for(let k=0;k<GW*GH;k++)if(bb.dist[k]>=0)reach[k]=1;}
+  for(let j=0;j<n;j++)for(let i=0;i<n;i++)S.grid[y+j][x+i]=null;
+  for(const o of S.objs){const q=acc(o);if(q&&!reach[q[1]*GW+q[0]])return'Dit blokkeert de looproute';}
+  if(a&&!reach[a[1]*GW+a[0]])return'Dit blokkeert de looproute';
+  return null;
+}
+function anchor(type,tx,ty){const n=TYPES[type].sz,k=Math.floor((n-1)/2);return[type=='gate'?AX:tx-k,ty-k];}
+function place(type,x,y,dir,free){
+  if(type=='gate')dir=3;
+  const err=canPlace(type,x,y,dir);if(err){toast('⚠️ '+err);return false;}
+  const t=TYPES[type];if(!free&&S.money<t.c){toast('💸 Niet genoeg geld');return false;}
+  const o={id:S.nid++,lv:1,type,x,y,dir,sz:t.sz,queue:[],serving:[],staff:null,staffed:false,flight:null,plane:null,dirt:0,incoming:0};
+  if(SEATS[type])o.seats=SEATS[type].map(()=>null);
+  if(type=='gate')o.num=++S.gateNo;
+  S.objs.push(o);for(let j=0;j<t.sz;j++)for(let i=0;i<t.sz;i++){S.grid[y+j][x+i]=o;S.litter[y+j][x+i]=0;}
+  if(!free){S.money-=t.c;floatTxt(x+t.sz/2,y+t.sz/2,30,'-€'+t.c,'#ff8a8a');}
+  recompute();return true;
+}
+function sell(o){
+  if(o.flight||o.plane){toast('⚠️ Deze gate is in gebruik');return;}
+  o.dead=true;S.objs.splice(S.objs.indexOf(o),1);for(let j=0;j<o.sz;j++)for(let i=0;i<o.sz;i++)S.grid[o.y+j][o.x+i]=null;
+  const r=Math.round(TYPES[o.type].c/2);S.money+=r;floatTxt(o.x+o.sz/2,o.y+o.sz/2,30,'+€'+r,'#8fe39b');
+  for(const p of [...o.queue,...o.serving.map(s=>s.p),...(o.seats||[]).filter(Boolean)]){detach(p);decide(p);}
+  if(o.staff){const s=o.staff,a=acc(o);s.station=null;s.state='idle';s.path=null;s.x=a[0]+.5;s.y=a[1]+.5;}
+  S.staff.forEach(s=>{if(s.wc===o){s.wc=null;s.state='idle';s.path=null;}});
+  recompute();
+}
+function recompute(){
+  S.decor=[...Array(GH)].map(()=>Array(GW).fill(0));S.binNear=[...Array(GH)].map(()=>Array(GW).fill(false));
+  for(const o of S.objs){
+    if(o.type=='plant')for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const x=o.x+dx,y=o.y+dy;if(kind(x,y)!='out')S.decor[y][x]=Math.min(1,S.decor[y][x]+.5);}
+    if(o.type=='fountain')for(let dy=-3;dy<=4;dy++)for(let dx=-3;dx<=4;dx++){const x=o.x+dx,y=o.y+dy;if(kind(x,y)!='out')S.decor[y][x]=Math.min(1.5,S.decor[y][x]+1);}
+    if(o.type=='bin')for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){const x=o.x+dx,y=o.y+dy;if(kind(x,y)!='out')S.binNear[y][x]=true;}
+  }
+}
+
+/* ================= staff ================= */
+function hire(k){S.staff.push({kind:k,x:GW-.5,y:DOOR_Y[ri(0,1)]+.5,state:'idle',wait:0,path:null,station:null});}
+function fire(k){const l=S.staff.filter(s=>s.kind==k);if(!l.length)return;const s=l.find(s=>!s.station)||l[l.length-1];if(s.station){s.station.staff=null;s.station.staffed=false;}S.staff.splice(S.staff.indexOf(s),1);}
+function wander(e){const[x,y]=tile(e),o=D.map(d=>[x+d[0],y+d[1]]).filter(([a,b])=>walkable(a,b));if(o.length)e.path=[pick(o)];}
+function updStaff(s,dt){
+  if(s.blocked){s.blocked=false;if(s.station){s.station.staff=null;s.station=null;}s.claim=null;s.wc=null;s.state='idle';}
+  if(s.kind=='cleaner')return updCleaner(s,dt);
+  if(s.state=='walk'){move(s,dt,2.8);return;}
+  if(s.state=='work')return;
+  if(s.path)move(s,dt,1.2);
+  s.wait-=dt;if(s.wait>0)return;s.wait=1.5;
+  const type=s.kind=='agent'?'checkin':'security',[sx,sy]=tile(s),b=bfs(sx,sy);let best=null,bd=1e9;
+  for(const o of S.objs){if(o.type!=type||o.staff)continue;const a=acc(o),d=b.dist[a[1]*GW+a[0]];if(d>=0&&d<bd){bd=d;best=o;}}
+  if(best){const o=best,a=acc(o);o.staff=s;s.station=o;s.state='walk';s.path=pathFrom(b,a[0],a[1]);s.onArrive=()=>{if(o.dead||o.staff!==s){s.state='idle';s.station=null;return;}s.state='work';o.staffed=true;};}
+  else{const ot=termOf(s.y),o2=S.objs.find(o=>o.type==type&&!o.staff&&termOf(o.y)!=ot);if(o2){const d=TERMS[termOf(o2.y)].door;s.x=GW-.5;s.y=d[0]+.5;s.path=null;s.wait=0;}else if(!s.path)wander(s);}
+}
+function updCleaner(s,dt){
+  if(s.state=='walk'){move(s,dt,2.8);return;}
+  if(s.state=='clean'){s.wait-=dt;if(s.wait<=0){
+      if(s.wc){s.wc.dirt=0;s.wc=null;s.state='idle';s.wait=0;return;}
+      const[x,y]=s.claim;if(S.litter[y][x]>0)S.litter[y][x]--;if(S.litter[y][x]>0)s.wait=.7;else{s.claim=null;s.state='idle';s.wait=0;}}return;}
+  if(s.path)move(s,dt,1.2);
+  s.wait-=dt;if(s.wait>0)return;s.wait=1;
+  const[sx,sy]=tile(s),b=bfs(sx,sy);let best=null,bd=1e9;
+  const claimed=S.staff.filter(o=>o!==s&&o.claim).map(o=>o.claim.join());
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){if(!S.litter[y][x])continue;const d=b.dist[y*GW+x];if(d>=0&&d<bd&&!claimed.includes(x+','+y)){bd=d;best=[x,y];}}
+  if(best){s.claim=best;s.state='walk';s.path=pathFrom(b,best[0],best[1]);s.onArrive=()=>{s.state='clean';s.wait=.7;};return;}
+  let wc=null;bd=1e9;
+  for(const o of S.objs){if(o.type!='toilet'||o.dirt<3||S.staff.some(c=>c!==s&&c.wc===o))continue;const a=acc(o),d=b.dist[a[1]*GW+a[0]];if(d>=0&&d<bd){bd=d;wc=o;}}
+  if(wc){const a=acc(wc);s.wc=wc;s.state='walk';s.path=pathFrom(b,a[0],a[1]);s.onArrive=()=>{if(wc.dead){s.wc=null;s.state='idle';return;}s.state='clean';s.wait=2.5;};return;}
+  {const ot=termOf(s.y);for(let y=0;y<GH&&!s.moved;y++){if(termOf(y)==ot||!owned(y))continue;if(S.litter[y].some(v=>v>0)||S.objs.some(o=>o.type=='toilet'&&o.dirt>=3&&termOf(o.y)!=ot&&termOf(o.y)==termOf(y))){const d=TERMS[termOf(y)].door;s.x=GW-.5;s.y=d[0]+.5;s.path=null;s.wait=0;return;}}}
+  if(!s.path)wander(s);
+}
+
+/* ================= passengers ================= */
+function detach(p){
+  const o=p.target;
+  if(o&&p.state=='queue'){const i=o.queue.indexOf(p);if(i>=0)o.queue.splice(i,1);const a=acc(o);p.x=a[0]+.5;p.y=a[1]+.5;}
+  if(o&&p.state=='serve'){const i=o.serving.findIndex(s=>s.p===p);if(i>=0)o.serving.splice(i,1);const a=acc(o);p.x=a[0]+.5;p.y=a[1]+.5;}
+  if(p.seat){const{o:so,i}=p.seat;if(so.seats&&so.seats[i]===p)so.seats[i]=null;if(p.state=='sit'){const a=acc(so);p.x=a[0]+.5;p.y=a[1]+.5;}p.seat=null;}
+  p.target=null;p.path=null;p.onArrive=null;
+}
+function seek(p,types,opt){
+  const[sx,sy]=tile(p),b=bfs(sx,sy);let best=null,bs=1e9;
+  for(const o of S.objs){if(!types.includes(o.type))continue;const t=TYPES[o.type];if(t.staff&&!o.staffed)continue;const a=acc(o),d=b.dist[a[1]*GW+a[0]];if(d<0)continue;
+    const sc=d+(o.queue.length+o.incoming)*4/(SLOTS[o.type]?SLOTS[o.type].length:1)*(t.staff?1.3:1);if(sc<bs){bs=sc;best=o;}}
+  if(!best){if(opt)return false;p.state='idle';p.wait=1.5;p.lost=types[0];return true;}
+  p.lost=false;const o=best,a=acc(o);p.state='walk';p.target=o;o.incoming++;p.path=pathFrom(b,a[0],a[1]);
+  p.onArrive=()=>{if(o.dead){p.target=null;decide(p);return;}o.queue.push(p);p.state='queue';};
+  return true;
+}
+function trySeat(p,o,b){
+  const i=o.seats.findIndex(x=>!x);if(i<0)return false;const a=acc(o),pth=pathFrom(b,a[0],a[1]);if(!pth)return false;
+  o.seats[i]=p;p.seat={o,i};p.state='walk';p.path=pth;
+  p.onArrive=()=>{if(o.dead||o.seats[i]!==p){p.seat=null;decide(p);return;}p.state='sit';p.wait=2;const q=L(o,...SEATS[o.type][i]);p.x=q[0];p.y=q[1];};return true;
+}
+function decide(p){
+  p.path=null;p.onArrive=null;p.target=null;p.blocked=false;
+  if(p.state=='leaving')return;
+  const f=p.f;
+  if(p.stage==0){seek(p,['checkin']);return;}
+  if(p.stage==1){seek(p,['security']);return;}
+  p.lost=false;
+  if(f.state=='boarding'){const a=acc(f.gate);p.state='walk';if(!goTo(p,a[0],a[1],()=>{if(p.f.state=='boarding')board(p);else{p.state='idle';p.wait=1;}})){p.state='idle';p.wait=1;}return;}
+  if(p.bladder>70){if(seek(p,['toilet'],true))return;if(p.bladder>100)p.cmp.add('toilet');}
+  if(p.hunger>60){if(seek(p,['restaurant','sushi','burger','cafe','vending'],true))return;if(p.hunger>100)p.cmp.add('hungry');}
+  if(p.biz&&!p.lounged){p.lounged=true;if(seek(p,['lounge'],true))return;p.cmp.add('lounge');}
+  if(!p.shopped&&Math.random()<.35){p.shopped=true;if(seek(p,['shop','dutyfree','pharmacy','tech','atm'],true))return;}
+  if(!p.funned&&Math.random()<.25){p.funned=true;if(seek(p,['play','massage'],true))return;}
+  const[sx,sy]=tile(p),b=bfs(sx,sy);
+  if(trySeat(p,f.gate,b))return;
+  let best=null,bd=1e9;for(const o of S.objs){if(o.type!='bench'||!o.seats.some(x=>!x))continue;const a=acc(o),d=b.dist[a[1]*GW+a[0]];if(d>=0&&d<bd){bd=d;best=o;}}
+  if(best&&bd<14&&trySeat(p,best,b))return;
+  if(S.min>f.dep-70)p.cmp.add('seat');
+  const a=acc(f.gate);
+  for(let i=0;i<12;i++){const x=a[0]+ri(0,3),y=a[1]+ri(-2,2);if(walkable(x,y)&&b.dist[y*GW+x]>=0){p.state='walk';p.path=pathFrom(b,x,y);p.onArrive=()=>{p.state='idle';p.wait=rnd(2,5);};return;}}
+  p.state='idle';p.wait=2;
+}
+function serve(o,p){
+  const a=acc(o),t=TYPES[o.type];p.x=a[0]+.5;p.y=a[1]+.5;p.target=null;
+  if(o.type=='checkin')p.stage=1;
+  else if(o.type=='security')p.stage=2;
+  else if(o.type=='toilet'){p.bladder=0;o.dirt+=[0,1,.6,.35][o.lv||1];if(o.dirt>6){p.mood-=15;p.cmp.add('wc');}else p.mood+=8;}
+  else if(t.food){p.hunger=0;p.mood+=10;}
+  else if(t.shop||o.type=='lounge')p.mood+=o.type=='lounge'?25:6;
+  else if(t.fun)p.mood+=o.type=='play'?20:15;
+  if(t.treat)p.treat=true;
+  p.mood=Math.min(100,p.mood);
+  if(t.earn){const e=earnOf(o);S.money+=e;S.stats.shop+=e;floatTxt(o.x+o.sz/2,o.y+o.sz/2,34,'+€'+e,'#8fe39b');}
+  p.state='idle';decide(p);
+}
+function review(p,force){
+  let s;
+  if(force)s=1;else{const m=p.mood-(S.level-1)*1.8;s=m>=80?4:m>=60?3:m>=40?2:1;if(p.cmp.size>=2)s=Math.max(1,s-1);if(p.treat&&m>=72&&p.cmp.size==0)s=5;}
+  const c=CPRIO.find(k=>p.cmp.has(k))||null;
+  S.reviews.push({s,c});if(s==5)addXP(1);if(S.reviews.length>30)S.reviews.shift();
+  S.rep+=(avgStars()*20-S.rep)*.06;
+}
+function avgStars(){if(!S.reviews.length)return 2.5;return S.reviews.reduce((a,r)=>a+r.s,0)/S.reviews.length;}
+function board(p){const f=p.f;f.boarded++;S.money+=30;S.stats.boarded++;addXP(1);review(p);floatTxt(p.x,p.y,30,'+€30','#8fe39b');p.gone=true;}
+function leave(p){detach(p);p.state='leaving';p.lost=false;if(!goTo(p,GW-1,doorOf(p.y)[ri(0,1)],()=>{p.gone=true;}))p.gone=true;}
+function spawnPax(f){
+  const p={x:GW-.5,y:f.gate?TERMS[termOf(f.gate.y)].door[ri(0,1)]+.5:DOOR_Y[0]+.5,f,stage:0,state:'idle',wait:0,mood:rnd(78,100),bladder:rnd(0,50),hunger:rnd(0,50),bR:rnd(.6,1.4),hR:rnd(.5,1.2),litterT:rnd(10,40),path:null,
+    cmp:new Set(),qt:0,st:0,dirtExp:0,biz:Math.random()<.15,shirt:pick(SHIRTS),skin:pick(SKIN),hair:pick(HAIR),pants:pick(['#2d3436','#34495e','#5d4037','#1e3799','#636e72'])};
+  S.pax.push(p);decide(p);
+}
+function updPax(p,dt){
+  const nd=1+(S.level-1)*.04;p.bladder+=dt*p.bR*nd;p.hunger+=dt*p.hR*nd;
+  const[tx0,ty0]=tile(p),tx=Math.max(0,Math.min(GW-1,tx0)),ty=Math.max(0,Math.min(GH-1,ty0));
+  if(p.state!='leaving'){
+    let dm=0;
+    if(p.state=='queue'){dm-=.9*DIFF();if(p.target&&p.target.type=='checkin'&&(p.qt+=dt)>25)p.cmp.add('queue');if(p.target&&p.target.type=='security'&&(p.st+=dt)>25)p.cmp.add('sec');}
+    if(p.lost)dm-=2.2*DIFF();
+    if(p.state=='sit')dm+=2.5;
+    dm+=S.decor[ty][tx]*.6;
+    let lit=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const r=S.litter[ty+dy];if(r&&r[tx+dx])lit+=r[tx+dx];}
+    dm-=Math.min(2,lit*.35);if(lit>=2&&(p.dirtExp+=dt)>6)p.cmp.add('dirty');
+    if(p.bladder>110)dm-=1;if(p.hunger>110)dm-=.7;
+    p.mood=Math.min(100,p.mood+dm*dt);
+    if(p.mood<=0){S.stats.angry++;p.cmp.add('angry');review(p,true);if(S.min-S.lastAngry>60){S.lastAngry=S.min;toast('😡 Een passagier vertrekt woedend! Wachtrijen te lang?');}leave(p);p.angry=true;return;}
+    if((p.litterT-=dt)<=0){p.litterT=rnd(15,40);if(Math.random()<.4&&!S.binNear[ty][tx]&&kind(tx,ty)=='floor'&&!S.grid[ty][tx]&&S.litter[ty][tx]<3)S.litter[ty][tx]++;}
+  }
+  switch(p.state){
+    case'walk':move(p,dt,2.4);if(p.blocked){detach(p);decide(p);}break;
+    case'leaving':move(p,dt,2.6);if(p.blocked){p.blocked=false;if(!goTo(p,GW-1,doorOf(p.y)[0],()=>{p.gone=true;}))p.gone=true;}break;
+    case'idle':p.wait-=dt;if(p.wait<=0)decide(p);break;
+    case'sit':p.wait-=dt;if(p.wait<=0){p.wait=2;if(p.f.state=='boarding'||p.bladder>75||p.hunger>65){detach(p);decide(p);}}break;
+  }
+}
+
+/* ================= flights & planes ================= */
+function newFlight(){
+  if(S.min<S.repairEnd){toast('🚧 Landingsbaan in onderhoud — vlucht omgeleid');return;}
+  if(S.runway<15){S.rep-=1;toast('🛑 Landingsbaan te beschadigd! Vlucht geweigerd — plan onderhoud (🛬 Platform)');return;}
+  const gates=S.objs.filter(o=>o.type=='gate');
+  if(!gates.length){toast('✈️ Een vlucht wil landen, maar je hebt geen gate!');return;}
+  const free=gates.filter(o=>!o.flight&&!o.plane);
+  if(!free.length){toast('✈️ Vlucht geweigerd: alle gates bezet. Bouw er meer!');return;}
+  const g=pick(free),day=Math.floor(S.min/1440);
+  const want=Math.round((5+S.rep/8+day*1.2+rnd(0,4))*(1+(S.level-1)*.09)),cap=GATECAP[g.lv||1],pax=Math.min(cap,want);
+  if(want>cap+3&&S.min-(S.lastBig||-999)>240){S.lastBig=S.min;toast(`✈️ Grotere vliegtuigen willen landen — upgrade je gates (max ${cap} passagiers)`);}
+  const f={code:pick(['SN','FR','KL','LH','BA','VY','TB','HV'])+ri(100,999),dest:pick(DESTS),created:S.min,dep:S.min+150,pax,spawned:0,boarded:0,missed:0,gate:g,color:COLS[S.fc++%COLS.length],state:'open'};
+  const gy=g.y+1.5;
+  const sc=PLSC[g.lv||1],pl={x:-5.3,y:gy-26,ang:Math.PI/2,sc,f,color:f.color,state:'arrive',alpha:1,wp:[[-5.3,gy,7],[-2.4,gy,2.2],[2.75-1.7*sc,gy,1.6]],rev:false};
+  g.flight=f;g.plane=pl;f.plane=pl;S.flights.push(f);S.planes.push(pl);
+  toast(`🛬 ${f.code} uit ${f.dest} landt — gate ${g.num}, ${pax} passagiers`);
+}
+function updPlane(pl,dt){
+  if(!pl.wp.length){if(pl.state=='arrive'){pl.state='parked';pl.ang=0;wearRunway(.7*(pl.sc||1));if(S.runway<35&&S.min-(S.lastBump||-999)>120){S.lastBump=S.min;S.rep-=.5;toast('😬 Hobbelige landing: de landingsbaan is versleten');}if(!pl.f.fueled)S.fuelQ.push(pl.f);}else if(pl.state=='depart')pl.done=true;return;}
+  const[tx,ty,sp]=pl.wp[0],dx=tx-pl.x,dy=ty-pl.y,d=Math.hypot(dx,dy),st=sp*dt;
+  if(d<1e-3){pl.wp.shift();pl.rev=false;return;}
+  if(!pl.rev)pl.ang=Math.atan2(dy,dx);
+  if(d<=st){pl.x=tx;pl.y=ty;pl.wp.shift();if(pl.rev&&pl.wp.length)pl.rev=false;if(pl.state=='depart'&&pl.wp.length==1&&pl.g){pl.g.plane=null;pl.g=null;}}else{pl.x+=dx/d*st;pl.y+=dy/d*st;}
+  if(pl.state=='depart'&&pl.wp.length==0)pl.done=true;
+  if(pl.fade&&pl.y>pl.fadeY)pl.alpha=Math.max(0,pl.alpha-dt*.5);
+}
+function updFlights(){
+  for(const f of S.flights){
+    if(f.state=='gone')continue;
+    while(f.spawned<f.pax&&S.min>=f.created+f.spawned*(90/f.pax)){f.spawned++;spawnPax(f);}
+    if(f.state=='open'&&S.min>=f.dep-40&&f.plane.state=='parked'){
+      f.state='boarding';
+      for(const p of S.pax)if(p.f===f&&p.stage==2&&!p.gone&&(p.state=='idle'||p.state=='sit'||(p.state=='walk'&&!p.target))){detach(p);p.state='idle';decide(p);}
+    }
+    if(S.min>=f.dep&&!f.fueled&&f.plane.state=='parked'&&(f.delays||0)<3){
+      f.dep+=15;f.delays=(f.delays||0)+1;S.rep-=1;S.stats.delays=(S.stats.delays||0)+1;
+      for(let k=0;k<2;k++){S.reviews.push({s:2,c:'delay'});if(S.reviews.length>30)S.reviews.shift();}
+      if(!S.fuelQ.includes(f)&&!S.trucks.some(t=>t.f===f))S.fuelQ.push(f);
+      toast(`⛽ ${f.code} vertraagd: niet getankt!`+(S.trucks.length?' Koop extra tankwagens.':' Je hebt geen tankwagen!'));continue;
+    }
+    if(S.min>=f.dep){
+      if(!f.fueled)S.rep-=2;wearRunway(.5*(f.plane.sc||1));
+      f.state='gone';const g=f.gate;g.flight=null;
+      const pl=f.plane,gy=g.y+1.5;pl.state='depart';pl.g=g;pl.fade=true;pl.rev=true;pl.fadeY=gy+12;pl.wp=[[-2.4,gy,1.4],[-5.3,gy,2.2],[-5.3,gy+26,8]];S.fuelQ=S.fuelQ.filter(x=>x!==f);
+      for(const p of S.pax)if(p.f===f&&!p.gone&&p.state!='leaving'){f.missed++;p.cmp.add('missed');review(p,true);leave(p);}
+      S.stats.missed+=f.missed;
+      toast(`🛫 ${f.code} naar ${f.dest} vertrekt: ${f.boarded}/${f.pax} aan boord`+(f.missed?` • ${f.missed} gemist 😞`:' 👍'));
+    }
+  }
+  const gone=S.flights.filter(f=>f.state=='gone');if(gone.length>6)S.flights.splice(S.flights.indexOf(gone[0]),1);
+}
+
+/* ================= runway & fuel ================= */
+function wearRunway(n){S.runway=Math.max(0,S.runway-n*(S.rwLv>1?.5:1));}
+const repairCost=()=>Math.round((100-S.runway)*45/10)*10;
+function repairRunway(){if(S.min<S.repairEnd){toast('🚧 Onderhoud is al bezig');return;}if(S.runway>97){toast('✨ De landingsbaan is in topvorm');return;}const c=repairCost();if(S.money<c){toast('💸 Niet genoeg geld');return;}
+  S.money-=c;S.repairStart=S.min;S.repairFrom=S.runway;S.repairEnd=S.min+45;toast('🚧 Onderhoud gestart — 45 min geen landingen');saveGame();}
+function reinforceRunway(){if(S.rwLv>1)return;if(S.level<RW_LV){toast(`🔒 Vanaf level ${RW_LV}`);return;}if(S.money<15000){toast('💸 €15.000 nodig');return;}S.money-=15000;S.rwLv=2;S.runway=100;addXP(10);toast('🛬 Landingsbaan versterkt: slijt nu half zo snel!');saveGame();}
+const TRUCK_C=1500,TRUCK_SAL=60;
+function buyTruck(){if(S.money<TRUCK_C){toast('💸 Niet genoeg geld');return;}S.money-=TRUCK_C;const dy=DEPOT_Y[0];S.trucks.push({x:-1.2,y:dy,state:'idle',wp:[],dir:[0,1]});}
+function sellTruck(){const i=S.trucks.findIndex(t=>t.state=='idle');if(i<0){toast('⛽ Alle tankwagens zijn bezig');return;}S.trucks.splice(i,1);S.money+=TRUCK_C/2;}
+function nearDepot(y){const ds=DEPOT_Y.filter((d,i)=>i==0||S.terms[i]);return ds.reduce((a,b)=>Math.abs(b-y)<Math.abs(a-y)?b:a);}
+function updTrucks(dt){
+  for(const t of S.trucks){
+    if(t.wp.length){const[tx,ty]=t.wp[0],dx=tx-t.x,dy=ty-t.y,d=Math.hypot(dx,dy),st=3.5*dt;if(d>1e-3)t.dir=[dx/d,dy/d];
+      if(d<=st){t.x=tx;t.y=ty;t.wp.shift();if(!t.wp.length){if(t.state=='go'){if(!t.f||t.f.state=='gone'){t.state='back';}else{t.state='fuel';t.timer=6;}}else if(t.state=='back')t.state='idle';}}else{t.x+=dx/d*st;t.y+=dy/d*st;}
+      if(t.state=='back'&&!t.wp.length){const dp=nearDepot(t.y);t.wp=[[-1.45,t.y],[-1.45,dp],[-1.2,dp]];}
+      continue;}
+    if(t.state=='fuel'){t.timer-=dt;if(t.timer<=0||!t.f||t.f.state=='gone'){if(t.f&&t.f.state!='gone'){t.f.fueled=true;floatTxt(t.x,t.y,30,'⛽ getankt','#f4c84a');}t.f=null;t.state='back';const dp=nearDepot(t.y);t.wp=[[-1.45,t.y],[-1.45,dp],[-1.2,dp]];}continue;}
+    if(t.state=='back'){const dp=nearDepot(t.y);t.wp=[[-1.45,t.y],[-1.45,dp],[-1.2,dp]];continue;}
+    S.fuelQ=S.fuelQ.filter(f=>f.state!='gone'&&!f.fueled);
+    if(S.fuelQ.length){const f=S.fuelQ.shift(),pl=f.plane,sc=pl.sc||1;t.f=f;t.state='go';const gy=f.gate.y+1.5,tx=pl.x-.45*sc,ty=gy+.95*sc;t.wp=[[-1.45,t.y],[-1.45,ty],[tx,ty]];}
+  }
+}
+
+/* ================= goals, alerts ================= */
+const GOALS=[
+  {t:'Bouw een koffiebar of burgerbar',r:500,ok:()=>S.objs.some(o=>o.type=='cafe'||o.type=='burger')},
+  {t:'Neem een schoonmaker aan',r:300,ok:()=>S.staff.some(s=>s.kind=='cleaner')},
+  {t:'50 passagiers aan boord',r:1000,ok:()=>S.stats.boarded>=50},
+  {t:'Bouw een tweede gate',r:1500,ok:()=>S.objs.filter(o=>o.type=='gate').length>=2},
+  {t:'Gemiddeld ★ 4.0 (min. 20 reviews)',r:2000,ok:()=>S.reviews.length>=20&&avgStars()>=4},
+  {t:'Open een business lounge',r:1000,ok:()=>S.objs.some(o=>o.type=='lounge')},
+  {t:'300 passagiers aan boord',r:3000,ok:()=>S.stats.boarded>=300},
+  {t:'Drie gates',r:3000,ok:()=>S.objs.filter(o=>o.type=='gate').length>=3},
+  {t:'1000 passagiers aan boord',r:6000,ok:()=>S.stats.boarded>=1000},
+  {t:'Koop extra grond',r:1000,ok:()=>S.plots.some(Boolean)}
+];
+function checkGoals(){GOALS.forEach((g,i)=>{if(!S.goals[i]&&g.ok()){S.goals[i]=true;S.money+=g.r;addXP(Math.round(g.r/100));toast(`🎯 Doel gehaald: ${g.t} (+€${g.r})`);}});}
+function alerts(){
+  const a=[];
+  for(const o of S.objs){const t=TYPES[o.type];if(t.staff&&!o.staff)a.push(`${t.e} ${t.n} heeft geen ${STAFF[t.staff].n.toLowerCase()}`);if(o.type=='toilet'&&o.dirt>6)a.push('🤢 Vieze toiletten — schoonmaker nodig');}
+  if(!S.objs.some(o=>o.type=='gate'))a.push('🛫 Je hebt geen gate');
+  const lit=S.litter.flat().reduce((x,y)=>x+y,0);if(lit>8)a.push('🗑️ Veel afval — meer schoonmakers of vuilbakken');
+  if(S.money<0)a.push('💸 Je staat in het rood');
+  if(S.runway<50)a.push(`🛬 Landingsbaan versleten (${Math.round(S.runway)}%) — plan onderhoud`);
+  if(S.fuelQ.length>0&&!S.trucks.some(t=>t.state=='idle'))a.push(`⛽ ${S.fuelQ.length} vliegtuig(en) wachten op brandstof`);
+  return a;
+}
+
+/* ================= main step ================= */
+function step(dt){
+  S.min+=dt*1.5;
+  const day=Math.floor(S.min/1440);
+  if(day!=S.day){S.day=day;let sal=S.trucks.length*TRUCK_SAL;for(const s of S.staff)sal+=STAFF[s.kind].sal;const int=Math.round(S.loan*.01),upk=S.objs.reduce((a,o)=>a+Math.round(TYPES[o.type].c*.02*(o.lv||1)),0);S.money-=sal+int+upk;toast(`🌙 Dag ${day+1} — lonen €${sal} + onderhoud €${upk}`+(int?` + rente €${int}`:''));}
+  if(S.min>=S.nextFlight){const tod=S.min%1440;if(tod>=300&&tod<1380){newFlight();S.nextFlight=S.min+Math.max(22,80-S.rep*.45-(S.level-1)*3)*rnd(.7,1.3);}else S.nextFlight=S.min+20;}
+  if(S.repairEnd&&S.min<S.repairEnd)S.runway=S.repairFrom+(100-S.repairFrom)*Math.min(1,(S.min-S.repairStart)/45);else if(S.repairEnd&&S.min>=S.repairEnd){S.runway=100;S.repairEnd=0;toast('✅ Onderhoud landingsbaan klaar');}
+  updFlights();
+  for(const pl of S.planes)updPlane(pl,dt);
+  updTrucks(dt);
+  S.planes=S.planes.filter(p=>!p.done&&p.alpha>0);
+  for(const o of S.objs)o.incoming=0;
+  for(const p of S.pax)if(p.state=='walk'&&p.target)p.target.incoming++;
+  for(const o of S.objs){
+    const t=TYPES[o.type];if(!t.svc)continue;
+    const cap=t.staff?(o.staffed?1:0):SLOTS[o.type].length;
+    while(o.serving.length<cap&&o.queue.length){const used=o.serving.map(s=>s.slot);let sl=0;while(used.includes(sl))sl++;const p=o.queue.shift();o.serving.push({p,t:0,slot:sl});p.state='serve';const q=L(o,...SLOTS[o.type][sl]);p.x=q[0];p.y=q[1];}
+    for(const s of o.serving.slice()){s.t+=dt;if(s.t>=svcTime(o)){o.serving.splice(o.serving.indexOf(s),1);serve(o,s.p);}}
+    if(o.queue.length){const a=acc(o),d=D[o.dir];o.queue.forEach((p,i)=>{p.x=a[0]+.5+d[0]*i*.36;p.y=a[1]+.5+d[1]*i*.36;});}
+  }
+  for(const p of S.pax.slice())if(!p.gone)updPax(p,dt);
+  S.pax=S.pax.filter(p=>!p.gone);
+  for(const s of S.staff)updStaff(s,dt);
+  S.rep=Math.max(0,Math.min(100,S.rep));
+  if((S.goalT=(S.goalT||0)+dt)>1){S.goalT=0;checkGoals();}
+  if(S.money<-5000&&!S.over){S.over=true;clearSave();showModal(`<h1>💥 Failliet!</h1><p>Je luchthaven ging bankroet op dag ${S.day+1}.</p><p>${S.stats.boarded} passagiers vlogen met jou mee.</p><button class="b go" style="width:100%" onclick="restart()">Opnieuw beginnen</button>`);}
+}
+
+/* ================= init ================= */
+function init(sv){
+  S={terms:[true,false,false],runway:100,rwLv:1,repairEnd:0,trucks:[],fuelQ:[],xp:0,level:1,plots:[false,false,false,false],money:10000,rep:50,min:360,day:0,speed:1,objs:[],pax:[],staff:[],flights:[],planes:[],floats:[],reviews:[],goals:[],loan:0,nextFlight:368,nid:1,gateNo:0,fc:0,lastAngry:-999,over:false,stats:{boarded:0,missed:0,angry:0,shop:0},ghost:null};
+  S.grid=[...Array(GH)].map(()=>Array(GW).fill(null));
+  S.litter=[...Array(GH)].map(()=>Array(GW).fill(0));
+  if(sv&&sv.v==1){sv.objs.forEach(o=>o.y+=8);if(sv.litter)sv.litter=[...Array(8)].map(()=>Array(GW).fill(0)).concat(sv.litter,[...Array(8)].map(()=>Array(GW).fill(0)));}
+  if(sv&&sv.plots)S.plots=sv.plots.slice();
+  if(sv&&sv.terms)S.terms=sv.terms.slice();
+  setOwned();recompute();
+  if(sv){
+    for(const k of['money','rep','min','day','reviews','goals','loan','gateNo','fc','xp','level','runway','rwLv'])if(sv[k]!==undefined)S[k]=sv[k];
+    Object.assign(S.stats,sv.stats||{});if(sv.litter)S.litter=sv.litter;
+    for(const o of sv.objs||[]){if(place(o.t,o.x,o.y,o.d,true)){const n=S.objs[S.objs.length-1];if(o.n)n.num=o.n;n.dirt=o.dirt||0;n.lv=o.lv||1;}}
+    if(sv.xp===undefined){S.xp=S.stats.boarded;while(S.level<MAXLV&&S.xp>=XPN(S.level+1))S.level++;}
+    S.gateNo=Math.max(S.gateNo,sv.gateNo||0);
+    for(const k of sv.staff||[])hire(k);
+    for(let i=0;i<(sv.trucks===undefined?1:sv.trucks);i++)S.trucks.push({x:-1.2,y:DEPOT_Y[0]+i*.01,state:'idle',wp:[],dir:[0,1]});
+    S.nextFlight=S.min+8;
+  }else{
+  place('checkin',15,18,0,true);
+  place('security',11,14,1,true);
+  place('gate',AX,11,3,true);
+  place('toilet',8,18,0,true);
+  place('bench',8,12,0,true);place('bench',8,14,0,true);
+  place('plant',17,13,0,true);place('plant',17,19,0,true);
+  hire('agent');hire('security');
+  S.trucks.push({x:-1.2,y:DEPOT_Y[0],state:'idle',wp:[],dir:[0,1]});
+  }
+  // scenery
+  S.trees=[];let tries=0;
+  while(S.trees.length<70&&tries++<3000){const x=rnd(-16,GW+16),y=rnd(-12,GH+12);
+    if(x>-8.2&&x<3.3)continue;if(x>GW-.3&&x<GW+4.2)continue;if(x>=3&&x<=GW&&y>-1.2&&y<GH+1.2)continue;if(x>GW+4.2&&x<GW+11&&y>PY0-.5&&y<PY0+11.5)continue;
+    S.trees.push({x,y,s:rnd(.8,1.3)});}
+  S.parked=[];for(let r=0;r<3;r++)for(let i=0;i<8;i++)if(Math.random()<.7)S.parked.push({x:GW+5.2+r*2,y:PY0+1.4+i,col:pick(['#ecf0f1','#2d3436','#27ae60','#2980b9','#f1c40f','#c0392b','#16a085','#7f8c8d'])});
+  S.cracks=[...Array(40)].map(()=>({y:rnd(-8,GH+4),x:rnd(-7.4,-3.3),l:rnd(.3,.9),a:rnd(-.6,.6)}));
+  S.cars=[];for(let i=0;i<8;i++)S.cars.push({x:i%2?GW+2.2:GW+3.1,y:rnd(-14,GH+14),v:i%2?-1:1,sp:rnd(2,3.2),col:pick(['#ecf0f1','#2d3436','#e74c3c','#2980b9','#f1c40f','#27ae60'])});
+}
+const SAVE_KEY='luchthaven_tycoon_v1';
+function saveGame(){if(!S||S.over)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify({v:2,plots:S.plots,money:S.money,rep:S.rep,min:S.min,day:S.day,stats:S.stats,reviews:S.reviews,goals:S.goals,loan:S.loan,gateNo:S.gateNo,fc:S.fc,litter:S.litter,
+  objs:S.objs.map(o=>({t:o.type,x:o.x,y:o.y,d:o.dir,n:o.num,dirt:o.dirt,lv:o.lv})),xp:S.xp,level:S.level,terms:S.terms,runway:S.runway,rwLv:S.rwLv,trucks:S.trucks.length,staff:S.staff.map(s=>s.kind)}));S.savedAt=Date.now();}catch(e){}}
+function loadSave(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));return s&&(s.v==1||s.v==2)?s:null;}catch(e){return null;}}
+function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
+function restart(){$('modal').style.display='none';clearSave();init();fitCam();saveGame();}
+function newGameAsk(){showModal(`<h1>🔄 Nieuw spel?</h1><p>Je huidige luchthaven wordt gewist. Dit kan je niet ongedaan maken.</p><div class="row"><button class="b" onclick="$('modal').style.display='none'">Annuleren</button><button class="b red" onclick="restart()">Ja, opnieuw</button></div>`);}
+addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden')saveGame();});
+addEventListener('pagehide',saveGame);
+
+/* ================= rendering ================= */
+function P(x,y,z=0){return[(x-y)*TW/2,(x+y)*TH/2-z];}
+function crgb(c){if(c[0]=='#'){const n=parseInt(c.slice(1),16);return[(n>>16)&255,(n>>8)&255,n&255];}return c.match(/\d+/g).slice(0,3).map(Number);}
+function shade(c,f){const[r,g,b]=crgb(c);return`rgb(${Math.min(255,r*f)|0},${Math.min(255,g*f)|0},${Math.min(255,b*f)|0})`;}
+function rgba(c,a){const[r,g,b]=crgb(c);return`rgba(${r},${g},${b},${a})`;}
+function poly(pts,fill,stroke,lw){ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||1;ctx.stroke();}}
+function quad(x0,y0,x1,y1,z,fill,stroke){poly([P(x0,y0,z),P(x1,y0,z),P(x1,y1,z),P(x0,y1,z)],fill,stroke);}
+function box(x0,y0,w,d,z0,h,col){const x1=x0+w,y1=y0+d,z1=z0+h;
+  poly([P(x0,y1,z0),P(x1,y1,z0),P(x1,y1,z1),P(x0,y1,z1)],shade(col,.7));
+  poly([P(x1,y0,z0),P(x1,y1,z0),P(x1,y1,z1),P(x1,y0,z1)],shade(col,.85));
+  poly([P(x0,y0,z1),P(x1,y0,z1),P(x1,y1,z1),P(x0,y1,z1)],col);}
+function fbox(o,s){const[a,b,fa,fb,h,col,z0]=s,f=D[o.dir],r=[-f[1],f[0]],[cx,cy]=L(o,a,b),ex=Math.abs(f[0])*fa+Math.abs(r[0])*fb,ey=Math.abs(f[1])*fa+Math.abs(r[1])*fb;box(cx-ex/2,cy-ey/2,ex,ey,z0||0,h,col);}
+function emojiAt(e,x,y,z,size){const[sx,sy]=P(x,y,z);ctx.font=`${size}px ${EMO}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(e,sx,sy);}
+function floatTxt(x,y,z,txt,col){S.floats.push({x,y,z,txt,col,t:0});}
+let LABELS=[];
+function label(x,y,z,txt,kind){const[sx,sy]=P(x,y,z);LABELS.push({sx,sy,txt,kind});}
+
+function drawPerson(x,y,o){
+  const[sx,sy]=P(x,y,0),sit=o.sit,bob=o.walk?Math.abs(Math.sin(o.walk*12))*1.5:0;
+  ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.ellipse(sx,sy,6.5,3.2,0,0,7);ctx.fill();
+  const by=sy-(sit?6:0)-bob;
+  if(!sit){ctx.fillStyle=o.pants;ctx.fillRect(sx-4,by-9,3.4,9);ctx.fillRect(sx+.6,by-9,3.4,9);}
+  else{ctx.fillStyle=o.pants;ctx.fillRect(sx-4.5,by-4,9,4);}
+  ctx.fillStyle=o.shirt;ctx.beginPath();ctx.roundRect?ctx.roundRect(sx-5.5,by-21,11,13,4):ctx.rect(sx-5.5,by-21,11,13);ctx.fill();
+  ctx.fillStyle=o.skin;ctx.beginPath();ctx.arc(sx,by-25.5,4.6,0,7);ctx.fill();
+  ctx.fillStyle=o.hair;ctx.beginPath();ctx.arc(sx,by-26.5,4.7,Math.PI,0);ctx.fill();
+  if(o.hat){ctx.fillStyle=o.hat;ctx.fillRect(sx-5,by-31,10,3.5);}
+  if(o.vest){ctx.fillStyle=o.vest;ctx.fillRect(sx-5.5,by-17,11,2.5);}
+  if(o.bag&&!sit){ctx.fillStyle=o.bag;ctx.fillRect(sx+6,by-10,5,8);ctx.fillStyle='#222';ctx.fillRect(sx+7.5,by-12,2,2);}
+  if(o.icon){ctx.font=`11px ${EMO}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(o.icon,sx,by-38);}
+}
+function paxLook(p){return{shirt:p.biz?'#1c2a48':p.shirt,pants:p.pants,skin:p.skin,hair:p.hair,bag:p.f.color,sit:p.state=='sit',walk:(p.state=='walk'||p.state=='leaving')?p.walkT:0,
+  icon:p.angry||p.mood<30?'😠':p.lost?'❓':p.state!='sit'&&p.mood>92&&p.treat?'😊':p.stage==2&&p.bladder>95?'🚽':''};}
+function staffLook(s){const st=STAFF[s.kind];return{shirt:st.shirt,pants:'#1e272e',skin:s.skin||(s.skin=pick(SKIN)),hair:s.hair||(s.hair=pick(HAIR)),hat:s.kind=='security'?'#1e272e':s.kind=='agent'?'#c0392b':null,vest:s.kind=='security'?'#f4d03f':s.kind=='cleaner'?'#f39c12':null,walk:s.path?s.walkT:0,icon:s.state=='clean'?'🧽':''};}
+
+function drawPlane(pl){
+  const t=pl.ang,f=[Math.cos(t),Math.sin(t)],r=[-f[1],f[0]];ctx.save();ctx.globalAlpha=pl.alpha;
+  const k=pl.sc||1,W2=(u,v,z)=>P(pl.x+(u*f[0]+v*r[0])*k,pl.y+(u*f[1]+v*r[1])*k,z*k);
+  const ell=(z,ru,rv)=>{const a=[];for(let i=0;i<20;i++){const th=i/20*Math.PI*2;let u=Math.cos(th)*ru;if(u<0)u*=1.0;a.push(W2(u,Math.sin(th)*rv*(u>ru*.6?.7+.3*(ru-u)/(ru*.4):1),z));}return a;};
+  poly(ell(0,1.7,.3),'rgba(0,0,0,.18)');
+  for(const s of[-1,1]){poly([W2(-1.2,.08*s,0),W2(-1.6,.65*s,0),W2(-1.75,.65*s,0),W2(-1.6,.08*s,0)],'rgba(0,0,0,.12)');poly([W2(.35,.2*s,0),W2(-.35,1.65*s,0),W2(-.65,1.65*s,0),W2(-.45,.2*s,0)],'rgba(0,0,0,.12)');}
+  for(const s of[-1,1]){poly([W2(.35,.2*s,11),W2(-.35,1.65*s,9),W2(-.65,1.65*s,9),W2(-.45,.2*s,11)],'#e3e8ed','#9aa5b0');
+    poly(ell(0,.25,.11).map((_,i)=>{const th=i/20*Math.PI*2;return W2(.05+Math.cos(th)*.28,.75*s+Math.sin(th)*.12,7);}),'#5f6b77');
+    poly([W2(-1.2,.08*s,15),W2(-1.6,.65*s,15),W2(-1.75,.65*s,15),W2(-1.6,.08*s,15)],'#e3e8ed','#9aa5b0');}
+  poly(ell(6,1.7,.3),'#c5ccd3');poly(ell(14,1.7,.3),'#f6f8fa','#a9b3bd');
+  poly([W2(-.9,-.04,15),W2(1.0,-.04,15),W2(1.0,.04,15),W2(-.9,.04,15)],pl.color);
+  poly([W2(1.3,-.13,15),W2(1.5,-.08,15),W2(1.5,.08,15),W2(1.3,.13,15)],'#2b3a4a');
+  poly([W2(-1.1,0,14),W2(-1.65,0,14),W2(-1.72,0,42),W2(-1.5,0,42)],pl.color,shade(pl.color,.7));
+  ctx.restore();
+}
+
+function drawRoomBase(o){
+  const t=TYPES[o.type],n=o.sz;if(n<2||t.noacc)return;
+  quad(o.x,o.y,o.x+n,o.y+n,0,rgba(t.col,o.type=='gate'?.18:.28));
+  if(o.type=='toilet'&&o.dirt>3)for(let i=0;i<Math.min(5,o.dirt-3);i++){const[sx,sy]=P(o.x+.4+(i*.37)%1.2,o.y+.5+(i*.53)%1.1);ctx.fillStyle='rgba(120,90,40,.55)';ctx.beginPath();ctx.ellipse(sx,sy,6,3,0,0,7);ctx.fill();}
+  for(const seg of walls(o))if(seg.back)box(...seg.b,0,10+4*(o.lv||1),shade(t.col,1.05));
+}
+function walls(o){
+  const n=o.sz,k=Math.floor(n/2),gap=['S','W','N','E'][o.dir],out=[],th=.09;
+  for(let i=0;i<n;i++){
+    if(!(gap=='N'&&i==k))out.push({back:1,b:[o.x+i,o.y,1,th]});
+    if(!(gap=='W'&&i==k))out.push({back:1,b:[o.x,o.y+i,th,1]});
+    if(!(gap=='S'&&i==k))out.push({back:0,b:[o.x+i,o.y+n-th,1,th]});
+    if(!(gap=='E'&&i==k))out.push({back:0,b:[o.x+n-th,o.y+i,th,1]});
+  }
+  return out;
+}
+function drawObject(o){
+  const t=TYPES[o.type],items=[];
+  for(const f of FURN[o.type]||[]){const[cx,cy]=L(o,f[0],f[1]);items.push({d:cx+cy,f:()=>fbox(o,f)});}
+  if(SEATS[o.type])SEATS[o.type].forEach((sp,i)=>{const[cx,cy]=L(o,...sp);items.push({d:cx+cy-.01,f:()=>fbox(o,[sp[0],sp[1],.34,.42,7,'#3b5bdb'])});const p=o.seats[i];if(p&&p.state=='sit')items.push({d:cx+cy,f:()=>drawPerson(cx,cy,paxLook(p))});});
+  for(const s of o.serving){const p=s.p;items.push({d:p.x+p.y,f:()=>drawPerson(p.x,p.y,paxLook(p))});}
+  if(o.staff&&o.staff.state=='work'){const[cx,cy]=L(o,...STAFFPOS[o.type]),s=o.staff;items.push({d:cx+cy,f:()=>drawPerson(cx,cy,staffLook(s))});}
+  if(o.type=='plant'){const c=[o.x+.5,o.y+.5];items.push({d:c[0]+c[1]+.1,f:()=>{const[sx,sy]=P(c[0],c[1],22);ctx.fillStyle='#3e8e41';ctx.beginPath();ctx.arc(sx,sy,10,0,7);ctx.fill();ctx.fillStyle='#57b05a';ctx.beginPath();ctx.arc(sx-3,sy-4,6,0,7);ctx.fill();}});}
+  items.sort((a,b)=>a.d-b.d).forEach(i=>i.f());
+  if(o.sz>=2&&!t.noacc)for(const seg of walls(o))if(!seg.back){box(...seg.b,0,10+4*(o.lv||1),shade(t.col,1.05));if(o.lv>1)box(seg.b[0],seg.b[1],seg.b[2],seg.b[3],10+4*o.lv,2,'#f4c84a');}
+  // badge
+  const cx=o.x+o.sz/2,cy=o.y+o.sz/2;
+  if(t.svc){const n=o.queue.length+o.serving.length;label(cx,cy,o.sz*16+26,`${t.e}${o.lv>1?'★'.repeat(o.lv):''} ${t.staff&&!o.staffed?'❗':n}`,t.staff&&!o.staffed?'warn':o.type=='toilet'&&o.dirt>6?'warn':'');}
+  if(o.type=='gate'){const f=o.flight;if(f){const m=Math.max(0,f.dep-S.min);label(cx,cy,80,`✈ ${o.num}${o.lv>1?'★'.repeat(o.lv):''} · ${Math.floor(m/60)}:${String(Math.floor(m%60)).padStart(2,'0')} · ${f.boarded}/${f.pax}`,f.state=='boarding'?'board':'');}else label(cx,cy,80,`✈ ${o.num} · vrij`,'dim');}
+}
+function drawGhost(){
+  if(panel=='obj'&&S.sel&&!S.sel.dead){const o=S.sel;quad(o.x,o.y,o.x+o.sz,o.y+o.sz,1,'rgba(244,200,74,.25)','#f4c84a');}
+  const g=S.ghost;if(!g)return;
+  if(g.sell){const o=g.sell;quad(o.x,o.y,o.x+o.sz,o.y+o.sz,1,'rgba(230,60,50,.45)','#e63c32');return;}
+  const n=TYPES[g.type].sz;quad(g.x,g.y,g.x+n,g.y+n,1,g.err?'rgba(230,60,50,.45)':'rgba(70,200,90,.45)',g.err?'#e63c32':'#2e9e5b');
+  const a=acc({type:g.type,x:g.x,y:g.y,dir:g.dir,sz:n});if(a)quad(a[0]+.2,a[1]+.2,a[0]+.8,a[1]+.8,1,'rgba(244,200,74,.85)');
+}
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#8cc075';ctx.fillRect(0,0,W,H);
+  const s=cam.s;ctx.setTransform(DPR*s,0,0,DPR*s,-cam.x*s*DPR,-cam.y*s*DPR);LABELS=[];
+  // ground
+  quad(-30,-30,GW+30,GH+30,0,'#8cc075');
+  quad(-8,-30,-2.7,GH+30,0,'#5b6067');
+  for(let y=-28;y<GH+28;y+=3)quad(-5.42,y,-5.18,y+1.6,0,'#f5f5f5');
+  quad(-8,-30,-7.75,GH+30,0,'#f5f5f5');quad(-2.95,-30,-2.7,GH+30,0,'#f5f5f5');
+  {const dmg=Math.floor((100-S.runway)/2.5);ctx.strokeStyle='rgba(30,30,30,.75)';ctx.lineWidth=2;for(let i=0;i<Math.min(dmg,S.cracks.length);i++){const c=S.cracks[i];const a=P(c.x,c.y),b=P(c.x+Math.cos(c.a)*c.l,c.y+Math.sin(c.a)*c.l),m=P(c.x+c.l*.5,c.y+c.l*.2);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(m[0],m[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();}}
+  quad(-2.7,-30,AX,GH+30,0,'#707680');
+  quad(-2.47,-30,-2.33,GH+30,0,'#f4c84a');
+  for(const o of S.objs)if(o.type=='gate'){const gy=o.y+1.5;quad(-2.4,gy-.05,AX,gy+.05,0,'#f4c84a');}
+  quad(GW,-30,GW+1.2,GH+30,0,'#c9cdd2');
+  quad(GW+1.2,-30,GW+4,GH+30,0,'#585d64');
+  for(let y=-28;y<GH+28;y+=2.5)quad(GW+2.55,y,GW+2.65,y+1.2,0,'#f5f5f5');
+  quad(GW+4,PY0,GW+11,PY0+11,0,'#61666d');
+  for(let r=0;r<3;r++)for(let i=0;i<9;i++)quad(GW+4.6+r*2,PY0+.9+i,GW+5.9+r*2,PY0+.95+i,0,'#e8e8e8');
+  for(const ti of ownedTerms()){const d=TERMS[ti].door;quad(GW-.02,d[0],GW+1.2,d[1]+1,0,'#aeb4ba');}
+  // terminal floor
+  for(let y=0;y<GH;y++){if(owned(y))for(let x=AX;x<GW;x++)quad(x,y,x+1,y+1,0,(x+y)%2?'#e4ecf2':'#f3f6f9');}
+  PLOTS.forEach((p,i)=>{if(S.plots[i])return;const b=plotBuyable(i);quad(AX,p.y0,GW,p.y1,0,b?'#b3d89b':'#9fc987');
+    ctx.setLineDash([6,5]);quad(AX+.1,p.y0+.1,GW-.1,p.y1-.1,0,null,b?'rgba(255,255,255,.85)':'rgba(255,255,255,.35)');ctx.setLineDash([]);
+    if(b){box(GW/2+1.4,(p.y0+p.y1)/2-.05,.08,.1,0,26,'#8d6e63');}
+    if(b&&!owned(p.y0))label(GW/2+1.5,(p.y0+p.y1)/2,34,S.level>=PLOT_LV[i]?`🏷️ ${p.n} te koop · €${p.c.toLocaleString('nl-BE')}`:`🔒 ${p.n} · level ${PLOT_LV[i]}`,S.level>=PLOT_LV[i]?'sale':'dim');});
+  TERMS.forEach((t,i)=>{if(i==0||S.terms[i])return;const can=S.level>=t.lv&&(i==1||S.terms[i-1]);quad(AX,t.y0,GW,t.y1,0,can?'#b3d89b':'#9fc987');
+    ctx.setLineDash([6,5]);quad(AX+.1,t.y0+.1,GW-.1,t.y1-.1,0,null,'rgba(255,255,255,.6)');ctx.setLineDash([]);
+    label((AX+GW)/2,(t.y0+t.y1)/2,30,can?`🏗️ ${t.n} bouwen · €${t.c.toLocaleString('nl-BE')}`:`🔒 ${t.n} · level ${t.lv}`,can?'sale':'dim');});
+  for(const ti of ownedTerms()){const d=TERMS[ti].door,[r0,r1]=termRange(ti);quad(GW-1,d[0],GW,d[1]+1,0,'rgba(80,140,230,.35)');
+    for(let x=AX;x<GW;x++)box(x,r0-.08,1,.08,0,18,'#a9d6ee');
+    for(let y=r0;y<r1;y++)box(AX-.08,y,.08,1,0,18,'#a9d6ee');}
+  // fuel depots
+  DEPOT_Y.forEach((dy,i)=>{if(i>0&&!S.terms[i])return;quad(-2.2,dy-1.1,-.2,dy+1.1,0,'#5f646b');box(-1.9,dy-.9,.7,.7,0,22,'#ecf0f1');box(-1.0,dy-.9,.7,.7,0,22,'#ecf0f1');box(-1.9,dy-.9,.7,.7,22,3,'#e74c3c');box(-1.0,dy-.9,.7,.7,22,3,'#e74c3c');});
+  // runway repair
+  if(S.min<S.repairEnd){for(let k=0;k<10;k++){const y=-6+k*(GH+10)/10;box(-7.3,y,.18,.18,0,10,'#e67e22');box(-3.2,y,.18,.18,0,10,'#e67e22');}const ry=-6+((S.min-S.repairStart)/45)*(GH+10);box(-5.8,ry,1.1,1.6,2,12,'#f39c12');box(-5.7,ry+.1,.9,.6,14,10,'#f5b041');}
+  for(const o of S.objs)drawRoomBase(o);
+  // litter
+  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){const n=S.litter[y][x];for(let i=0;i<n;i++){const[sx,sy]=P(x+.3+.22*i,y+.35+.2*((i*7)%3));ctx.fillStyle=['#8a6a3d','#b0b0b0','#c0392b'][i];ctx.beginPath();ctx.ellipse(sx,sy,3,1.8,0,0,7);ctx.fill();}}
+  // planes & bridges
+  for(const pl of S.planes)drawPlane(pl);
+  for(const o of S.objs)if(o.type=='gate')box(2.55,o.y+1.32,AX-2.55,.36,8,14,'#9aa3ac');
+  drawGhost();
+  // sorted pass
+  const list=[];
+  for(const o of S.objs)list.push({d:o.x+o.y+o.sz*2-1,f:()=>drawObject(o)});
+  for(const p of S.pax)if(p.state!='serve'&&p.state!='sit')list.push({d:p.x+p.y,f:()=>drawPerson(p.x,p.y,paxLook(p))});
+  for(const st of S.staff)if(st.state!='work')list.push({d:st.x+st.y,f:()=>drawPerson(st.x,st.y,staffLook(st))});
+  for(const t of S.trees)list.push({d:t.x+t.y,f:()=>{const[sx,sy]=P(t.x,t.y,0);ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(sx+4,sy,14*t.s,6*t.s,0,0,7);ctx.fill();ctx.fillStyle='#7a5230';ctx.fillRect(sx-2.5,sy-14*t.s,5,14*t.s);
+    ctx.fillStyle='#3f8f3a';ctx.beginPath();ctx.arc(sx,sy-26*t.s,14*t.s,0,7);ctx.fill();ctx.fillStyle='#5cb85c';ctx.beginPath();ctx.arc(sx-4*t.s,sy-31*t.s,8*t.s,0,7);ctx.fill();}});
+  for(const t of S.trucks)list.push({d:t.x+t.y,f:()=>{const v=Math.abs(t.dir[1])>=Math.abs(t.dir[0]);const w=v?.55:1.3,d=v?1.3:.55;box(t.x-w/2,t.y-d/2,w,d,2,12,'#ecf0f1');box(t.x-w/2,t.y-d/2,w,d,14,2,'#e74c3c');
+    const cx=t.x+(v?0:t.dir[0]>0?.55:-.55),cy=t.y+(v?t.dir[1]>0?.55:-.55:0);box(cx-.27,cy-.27,.54,.54,2,16,'#f4c84a');if(t.state=='fuel'){const[sx,sy]=P(t.x,t.y,34);ctx.font=`13px ${EMO}`;ctx.textAlign='center';ctx.fillText('⛽',sx,sy);}}});
+  for(const c of[...S.parked,...S.cars])list.push({d:c.x+c.y,f:()=>{const v=c.v!==undefined;const w=v?.62:1.1,d=v?1.1:.62;box(c.x-w/2,c.y-d/2,w,d,2,9,c.col);box(c.x-w/2+(v?.08:.25),c.y-d/2+(v?.25:.08),v?w-.16:w-.5,v?d-.5:d-.16,11,7,shade(c.col,.9));}});
+  list.sort((a,b)=>a.d-b.d).forEach(i=>i.f());
+  // front rail
+  for(const ti of ownedTerms()){const d=TERMS[ti].door,[r0,r1]=termRange(ti);
+    for(let x=AX;x<GW;x++)box(x,r1,1,.06,0,10,'#a9d6ee');
+    for(let y=r0;y<r1;y++)if(!d.includes(y))box(GW,y,.06,1,0,10,'#a9d6ee');
+    label(GW-.5,d[1],40,ti==0?'🚪 Ingang':`🚪 ${TERMS[ti].n}`,'door');}
+  // screen-space labels
+  ctx.setTransform(DPR,0,0,DPR,0,0);ctx.textAlign='center';ctx.textBaseline='middle';
+  for(const l of LABELS){const x=(l.sx-cam.x)*s,y=(l.sy-cam.y)*s;ctx.font=`700 12px -apple-system,system-ui,sans-serif`;const w=ctx.measureText(l.txt).width+16;
+    ctx.fillStyle=l.kind=='warn'?'rgba(200,50,40,.92)':l.kind=='board'?'rgba(230,160,30,.95)':l.kind=='door'?'rgba(50,110,200,.92)':l.kind=='sale'?'rgba(46,158,91,.95)':l.kind=='dim'?'rgba(28,34,46,.6)':'rgba(28,34,46,.88)';
+    ctx.beginPath();ctx.roundRect?ctx.roundRect(x-w/2,y-11,w,22,11):ctx.rect(x-w/2,y-11,w,22);ctx.fill();ctx.fillStyle='#fff';ctx.font=`700 12px -apple-system,system-ui,${EMO}`;ctx.fillText(l.txt,x,y+.5);}
+  for(const f of S.floats){const[wx,wy]=P(f.x,f.y,f.z+f.t*30);ctx.globalAlpha=Math.max(0,1-f.t/1.5);ctx.font='800 14px -apple-system,system-ui,sans-serif';ctx.strokeStyle='rgba(0,0,0,.55)';ctx.lineWidth=3;
+    ctx.strokeText(f.txt,(wx-cam.x)*s,(wy-cam.y)*s);ctx.fillStyle=f.col;ctx.fillText(f.txt,(wx-cam.x)*s,(wy-cam.y)*s);}
+  ctx.globalAlpha=1;
+}
+
+/* ================= UI ================= */
+const fmtT=m=>{m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(Math.floor(m%60)).padStart(2,'0');};
+const eur=v=>(v<0?'-€':'€')+Math.abs(Math.round(v)).toLocaleString('nl-BE');
+function toast(msg){const b=$('toast'),d=document.createElement('div');d.textContent=msg;b.appendChild(d);while(b.children.length>2)b.firstChild.remove();setTimeout(()=>{d.style.opacity=0;setTimeout(()=>d.remove(),500);},3800);}
+function updHud(){
+  $('money').textContent=eur(S.money);$('money').style.color=S.money<0?'#ff6b6b':'#fff';
+  $('rep').textContent=Math.round(S.rep)+'%';$('boarded').textContent=S.stats.boarded;
+  $('clock').textContent='Dag '+(S.day+1)+' · '+fmtT(S.min);
+  $('goalTxt').textContent=S.goals.filter(Boolean).length+'/'+GOALS.length;
+  const nx=S.flights.filter(f=>f.state!='gone').sort((a,b)=>a.dep-b.dep)[0];
+  $('nextTxt').textContent=nx?(()=>{const m=Math.max(0,nx.dep-S.min);return Math.floor(m/60)+':'+String(Math.floor(m%60)).padStart(2,'0');})():'–';
+  $('starTxt').textContent=S.reviews.length?avgStars().toFixed(1):'–';
+  $('alertTxt').textContent=alerts().length;
+  $('rwTxt').textContent=(S.min<S.repairEnd?'🚧 ':'')+Math.round(S.runway)+'%';$('rwTxt').style.color=S.runway<35?'#ff6b6b':S.runway<60?'#f4c84a':'#fff';
+  $('lvlTxt').textContent='Lvl '+S.level;$('lvlBar').style.width=(S.level>=MAXLV?100:Math.max(0,Math.min(100,(S.xp-XPN(S.level))/(XPN(S.level+1)-XPN(S.level))*100)))+'%';
+}
+function renderPanel(){
+  const el=$('panel');
+  document.querySelectorAll('#bar [data-p]').forEach(b=>b.classList.toggle('on',b.dataset.p==panel));
+  if(!panel){el.style.display='none';S.ghost=null;return;}
+  el.style.display='block';
+  const cats={basis:'BASIS',eten:'ETEN & DRINKEN',winkels:'WINKELS',comfort:'COMFORT',extra:"EXTRA'S"};
+  if(cats[panel]){
+    const its=Object.entries(TYPES).filter(([k,t])=>t.cat==panel);const sel=buildSel&&TYPES[buildSel];
+    el.innerHTML=`<h3>${cats[panel]}</h3><div class="items">${its.map(([k,t])=>{const lk=S.level<lockLv(k);return`<div class="item ${buildSel==k?'sel':''} ${S.money<t.c||lk?'poor':''}" data-a="sel" data-t="${k}"><div class="e">${lk?'🔒':t.e}</div><div class="n">${t.n}<br><small style="color:#aeb8c6">${t.sz}×${t.sz}</small></div><div class="p" ${lk?'style="color:#f4c84a"':''}>${lk?'Level '+lockLv(k):'€'+t.c.toLocaleString('nl-BE')}</div></div>`;}).join('')}</div>
+    ${sel?`<div class="row">${buildSel!='gate'&&!sel.noacc?'<button class="b" data-a="rot">🔄 Draaien</button>':''}${S.ghost&&!S.ghost.sell?`<button class="b ${S.ghost.err?'red':'go'}" data-a="ok">${S.ghost.err?'✖ Kan niet':'✔ Bouwen'}</button>`:''}<button class="b" data-a="close">Klaar</button></div>`:''}
+    <div class="hint">${sel?(S.ghost&&S.ghost.err?'⚠️ '+S.ghost.err:(sel.d?sel.d+' ':'')+'Tik op de vloer voor een voorbeeld, en tik nog eens (of op ✔) om te bouwen. Geel vakje = ingang.'+(sel.earn?` Levert €${sel.earn} per klant.`:'')+(canUpg({type:buildSel})?' Later te upgraden tot ★★★.':'')):'Kies wat je wil bouwen.'}</div>`;
+  }else if(panel=='sloop'){
+    el.innerHTML=`<h3>SLOPEN</h3><div class="hint" style="margin-top:0">Tik op een object om het te selecteren, tik nog eens om te slopen. Je krijgt 50% terug.</div>${S.ghost&&S.ghost.sell?`<div class="row"><button class="b red" data-a="dosell">🧨 Sloop ${TYPES[S.ghost.sell.type].n}</button></div>`:''}`;
+  }else if(panel=='staff'){
+    let sal=S.trucks.length*TRUCK_SAL;for(const s of S.staff)sal+=STAFF[s.kind].sal;
+    el.innerHTML=`<h3>PERSONEEL</h3>`+Object.entries(STAFF).map(([k,v])=>{const n=S.staff.filter(s=>s.kind==k).length;return`<div class="srow"><div class="e">${v.e}</div><div class="t"><b>${v.n}</b> × ${n}<br><small>${v.d} • €${v.sal}/dag</small></div><button data-a="fire" data-k="${k}" style="background:#b8433b">−</button><button data-a="hire" data-k="${k}" style="background:#2e9e5b">+</button></div>`;}).join('')+`<div class="hint">Loonkost (incl. ${S.trucks.length} tankwagen${S.trucks.length==1?'':'s'}): €${sal} per dag, betaald om middernacht. Tankwagens koop je bij 🛬 Platform.</div>`;
+  }else if(panel=='flights'){
+    const list=S.flights.slice().sort((a,b)=>a.dep-b.dep);
+    el.innerHTML=`<h3>VERTREKKEN</h3><table><tr><th>Vlucht</th><th>Naar</th><th>Tijd</th><th>Gate</th><th>Status</th></tr>${list.length?list.map(f=>`<tr><td><span class="dot" style="background:${f.color}"></span>${f.code}</td><td>${f.dest}</td><td>${fmtT(f.dep)}</td><td>${f.gate.num}</td><td>${f.state=='open'?(f.plane.state=='arrive'?'Landt…':'Inchecken'):f.state=='boarding'?'<b style="color:#f4c84a">Boarding</b>':`Weg ${f.boarded}/${f.pax}`}</td></tr>`).join(''):'<tr><td colspan=5>Nog geen vluchten…</td></tr>'}</table>
+    <div class="hint">✈️ Aan boord ${S.stats.boarded} • 😞 Gemist ${S.stats.missed} • 😡 Boos weg ${S.stats.angry} • 🧍 In terminal ${S.pax.length} • 🛍️ Omzet winkels ${eur(S.stats.shop)}<br>Hogere reputatie = meer en grotere vluchten. Meer gates = meer verkeer.</div>`;
+  }else if(panel=='stars'){
+    const n=S.reviews.length,avg=avgStars(),cnt=[0,0,0,0,0,0];S.reviews.forEach(r=>cnt[r.s]++);
+    const cm={};S.reviews.forEach(r=>{if(r.c)cm[r.c]=(cm[r.c]||0)+1;});
+    const full=Math.round(avg);
+    el.innerHTML=`<h3>REVIEWS</h3><div style="font-size:15px"><span class="star">${'★'.repeat(full)}${'☆'.repeat(5-full)}</span> ${n?RTXT[full]:'Nog geen reviews'}</div><div class="hint" style="margin:2px 0 8px">Laatste ${n} passagiers · gemiddeld ★ ${n?avg.toFixed(1):'–'}</div>
+    ${[5,4,3,2,1].map(k=>`<div class="dist"><span class="star" style="width:62px">${'★'.repeat(k)}</span><div class="bar"><i style="width:${n?cnt[k]/n*100:0}%;background:${k<=2?'#e05a4f':'#57c26a'}"></i></div><span style="width:20px;text-align:right">${cnt[k]}</span></div>`).join('')}
+    <h3 style="margin-top:12px">WAAR ZE OVER KLAGEN</h3>${Object.keys(cm).length?Object.entries(cm).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="cmp"><span>${COMPL[k]}</span><b>${v}</b></div>`).join(''):'<div class="hint">Geen klachten 🎉</div>'}
+    <div class="hint">De reputatie schuift naar wat recente passagiers vinden. Een vijfde ster vraagt een traktatie: eten, een winkel of de lounge.</div>`;
+  }else if(panel=='goals'){
+    el.innerHTML=`<h3>DOELEN</h3>`+GOALS.map((g,i)=>`<div class="goal ${S.goals[i]?'done':''}"><span>${S.goals[i]?'✅':'🎯'}</span><span style="flex:1">${g.t}</span><b style="color:#8fe39b">+€${g.r}</b></div>`).join('');
+  }else if(panel=='alerts'){
+    const a=alerts();el.innerHTML=`<h3>MELDINGEN</h3>`+(a.length?a.map(x=>`<div class="cmp"><span>${x}</span></div>`).join(''):'<div class="hint">Alles loopt gesmeerd 👌</div>');
+  }else if(panel=='grond'){
+    const tr=TERMS.map((t,i)=>{const own=i==0||S.terms[i],lk=i>0&&S.level<t.lv,prev=i>1&&!S.terms[i-1];
+      return`<div class="srow"><div class="e">${own?'🏢':lk||prev?'🔒':'🏗️'}</div><div class="t"><b>${t.n}</b><br><small>${own?'Open':lk?'Vanaf level '+t.lv+' · €'+t.c.toLocaleString('nl-BE'):prev?'Bouw eerst '+TERMS[i-1].n:'€'+t.c.toLocaleString('nl-BE')}</small></div>${own?`<button class="b" style="flex:0 0 auto;width:auto;height:auto;font-size:13px;padding:9px 12px" data-a="goto" data-i="${i}">📍 Ga naar</button>`:!lk&&!prev?`<button class="b ${S.money>=t.c?'go':''}" style="flex:0 0 auto;width:auto;height:auto;font-size:13px;padding:9px 14px" data-a="term" data-i="${i}">Bouwen</button>`:''}</div>`;}).join('');
+    el.innerHTML=`<h3>TERMINALS</h3>${tr}<h3 style="margin-top:12px">GROND TERMINAL 1</h3><div class="hint" style="margin-top:0">Meer grond = een grotere terminal. Je kan er alles bouwen, ook extra gates langs het platform.</div>`+PLOTS.map((p,i)=>{const own=S.plots[i],b=plotBuyable(i);
+      return`<div class="srow"><div class="e">${own?'✅':b?'🏷️':'🔒'}</div><div class="t"><b>${p.n}</b> <small>· ${GW-AX}×${p.y1-p.y0} vakjes</small><br><small>${own?'Van jou':S.level<PLOT_LV[i]?'🔒 Vanaf level '+PLOT_LV[i]+' · €'+p.c.toLocaleString('nl-BE'):b?'€'+p.c.toLocaleString('nl-BE'):'Koop eerst '+PLOTS[p.req].n}</small></div>${!own&&b&&S.level>=PLOT_LV[i]?`<button class="b ${S.money>=p.c?'go':''}" style="flex:0 0 auto;width:auto;height:auto;font-size:13px;padding:9px 14px" data-a="buy" data-i="${i}">Koop</button>`:''}</div>`;}).join('');
+  }else if(panel=='platform'){
+    const rep=S.min<S.repairEnd,busy=S.trucks.filter(t=>t.state!='idle').length;
+    el.innerHTML=`<h3>🛬 LANDINGSBAAN</h3><div class="dist"><span style="width:44px">${Math.round(S.runway)}%</span><div class="bar" style="height:9px"><i style="width:${S.runway}%;background:${S.runway<35?'#e05a4f':S.runway<60?'#f4c84a':'#57c26a'}"></i></div></div>
+    <div class="hint" style="margin-top:2px">Elke landing en elk vertrek slijt de baan${S.rwLv>1?' (versterkt: half zo snel)':''}. Onder 35%: hobbelige landingen en slechtere reputatie. Onder 15%: geen vluchten meer!</div>
+    <div class="row"><button class="b ${rep?'':'go'}" data-a="repair">${rep?'🚧 Onderhoud bezig…':'🔧 Onderhoud · €'+repairCost().toLocaleString('nl-BE')}</button>${S.rwLv>1?'':`<button class="b" data-a="reinf">${S.level<RW_LV?'🔒 Versterken (lvl '+RW_LV+')':'💪 Versterken · €15.000'}</button>`}</div>
+    <div class="hint">Onderhoud duurt 45 minuten speltijd: dan landen er geen vliegtuigen.</div>
+    <h3 style="margin-top:14px">⛽ TANKWAGENS</h3>
+    <div class="srow"><div class="e">🚛</div><div class="t"><b>Tankwagen</b> × ${S.trucks.length}<br><small>${busy} onderweg · ${S.fuelQ.length} vliegtuig(en) wachten · €${TRUCK_C} + €${TRUCK_SAL}/dag</small></div><button data-a="truck-" style="background:#b8433b">−</button><button data-a="truck+" style="background:#2e9e5b">+</button></div>
+    <div class="hint">Elk vliegtuig moet getankt worden vóór vertrek. Niet getankt = 15 min vertraging, slechte reviews en minder reputatie. Meer gates → meer tankwagens nodig.</div>`;
+  }else if(panel=='obj'){
+    const o=S.sel;if(!o||o.dead){panel=null;renderPanel();return;}const t=TYPES[o.type],lv=o.lv||1;
+    let info=[];
+    if(o.type=='gate')info.push(`✈️ ${o.flight?o.flight.code+' → '+o.flight.dest+' om '+fmtT(o.flight.dep)+' · '+o.flight.boarded+'/'+o.flight.pax+' aan boord':'Geen vlucht'}`,`👥 Max. ${GATECAP[lv]} passagiers per vlucht`,`💺 Zitjes ${o.seats.filter(Boolean).length}/6 bezet`);
+    if(t.svc)info.push(`🧍 ${o.queue.length} in de rij · ${o.serving.length} geholpen`,`⏱️ ${svcTime(o).toFixed(1)} s per klant`);
+    if(t.earn)info.push(`💶 €${earnOf(o)} per klant`);
+    if(t.staff)info.push(o.staffed?'✅ Bemand':'❌ Geen personeel — neem een '+STAFF[t.staff].n.toLowerCase()+' aan');
+    if(o.type=='toilet')info.push(o.dirt>6?'🤢 Vies!':o.dirt>3?'🧽 Wat vuil':'✨ Proper');
+    if(o.seats&&o.type!='gate')info.push(`💺 ${o.seats.filter(Boolean).length}/${o.seats.length} bezet`);
+    let up='';
+    if(canUpg(o)){
+      if(lv>=3)up='<div class="hint">🏆 Maximaal niveau bereikt.</div>';
+      else{const need=UPG_LV[lv+1],c=upCost(o),lk=S.level<need;
+        const what=o.type=='gate'?`grotere vliegtuigen: max ${GATECAP[lv]} → ${GATECAP[lv+1]} passagiers`:`${Math.round(35)}% sneller`+(t.earn?`, omzet €${earnOf(o)} → €${Math.round(t.earn*(1+.4*lv))}`:'')+(o.type=='toilet'?', wordt minder snel vuil':'');
+        up=`<div class="row"><button class="b ${lk?'':S.money>=c?'go':''}" data-a="upg">${lk?'🔒 '+'★'.repeat(lv+1)+' vanaf level '+need:'⬆️ Upgrade naar '+'★'.repeat(lv+1)+' · €'+c.toLocaleString('nl-BE')}</button></div><div class="hint">${what}. Hoger niveau = hoger dagelijks onderhoud.</div>`;}
+    }
+    el.innerHTML=`<h3>${t.e} ${t.n.toUpperCase()}${o.type=='gate'?' '+o.num:''} <span class="star">${canUpg(o)?'★'.repeat(lv)+'☆'.repeat(3-lv):''}</span></h3>${info.map(x=>`<div style="margin:4px 0">${x}</div>`).join('')}${up}
+    <div class="row"><button class="b" data-a="close">Sluiten</button></div>`;
+  }else if(panel=='level'){
+    const L=S.level,next=L>=MAXLV?null:XPN(L+1);
+    let rows='';for(let l=2;l<=MAXLV;l++){const u=unlocksAt(l);rows+=`<div class="goal ${l<=L?'done':''}"><span>${l<=L?'✅':'🏅'}</span><span style="flex:1"><b>Level ${l}</b>${u.length?' — '+u.join(', '):''}</span><small style="color:#aeb8c6">${XPN(l)} XP</small></div>`;}
+    el.innerHTML=`<h3>🏅 LEVEL ${L}</h3><div>${next?`${S.xp} / ${next} XP tot level ${L+1}`:'Maximaal level!'}</div>
+    <div class="dist"><div class="bar" style="height:9px"><i style="width:${next?Math.min(100,(S.xp-XPN(L))/(next-XPN(L))*100):100}%;background:#f4c84a"></i></div></div>
+    <div class="hint" style="margin-top:4px">XP verdien je met: passagiers aan boord (+1), ★★★★★ reviews (+1), upgrades (+5) en doelen.</div>
+    <h3 style="margin-top:12px">MOEILIJKHEID</h3><div class="hint" style="margin-top:0">Reizigers ${Math.round((DIFF()-1)*100)}% ongeduldiger · vluchten ${Math.round((L-1)*9)}% groter · strengere reviews · dagelijks onderhoud per gebouw. Upgrade je gebouwen om bij te blijven!</div>
+    <h3 style="margin-top:12px">ONTGRENDELINGEN</h3>${rows}`;
+  }else if(panel=='bank'){
+    el.innerHTML=`<h3>BANK</h3><div>Openstaande lening: <b>${eur(S.loan)}</b><br><small style="color:#aeb8c6">Rente 1% per dag. Max. €20.000. Onder −€5.000 cash ben je failliet.</small></div>
+    <div class="row"><button class="b go" data-a="loan">Leen €5.000</button><button class="b" data-a="repay">Los €5.000 af</button></div>
+    <h3 style="margin-top:14px">SPEL</h3><div class="hint" style="margin-top:0">💾 Je voortgang wordt automatisch opgeslagen in deze browser${S.savedAt?` (laatst om ${new Date(S.savedAt).toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'})})`:''}.</div>
+    <div class="row"><button class="b" data-a="save">💾 Nu opslaan</button><button class="b red" data-a="newgame">🔄 Nieuw spel</button></div>`;
+  }
+}
+$('panel').addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
+  if(a=='sel'){const k=b.dataset.t;if(TYPES[k]&&S.level<lockLv(k)){toast(`🔒 ${TYPES[k].n} wordt ontgrendeld op level ${lockLv(k)}`);return;}buildSel=buildSel==k?null:k;S.ghost=null;}
+  else if(a=='rot'){buildDir=(buildDir+1)%4;if(S.ghost&&!S.ghost.sell){S.ghost.dir=buildDir;S.ghost.err=canPlace(S.ghost.type,S.ghost.x,S.ghost.y,buildDir);}}
+  else if(a=='ok'){const g=S.ghost;if(g&&!g.err&&place(g.type,g.x,g.y,g.dir,false))S.ghost=null;}
+  else if(a=='close'){panel=null;buildSel=null;}
+  else if(a=='dosell'){sell(S.ghost.sell);S.ghost=null;}
+  else if(a=='hire')hire(b.dataset.k);
+  else if(a=='fire')fire(b.dataset.k);
+  else if(a=='loan'){if(S.loan>=20000)toast('🏦 Maximum lening bereikt');else{S.loan+=5000;S.money+=5000;}}
+  else if(a=='upg'){if(S.sel)upgrade(S.sel);}
+  else if(a=='buy'){buyPlot(+b.dataset.i);}
+  else if(a=='term'){buyTerm(+b.dataset.i);}
+  else if(a=='goto'){focusTerm(+b.dataset.i);}
+  else if(a=='repair'){repairRunway();}
+  else if(a=='reinf'){reinforceRunway();}
+  else if(a=='truck+'){buyTruck();}
+  else if(a=='truck-'){sellTruck();}
+  else if(a=='save'){saveGame();toast('💾 Opgeslagen');}
+  else if(a=='newgame'){newGameAsk();return;}
+  else if(a=='repay'){if(S.loan<=0)toast('🏦 Geen lening');else if(S.money<5000)toast('💸 Niet genoeg cash');else{S.loan-=5000;S.money-=5000;}}
+  renderPanel();updHud();
+});
+function setPanel(p){panel=panel==p?null:p;if(!TYPES[buildSel]||TYPES[buildSel].cat!=panel)buildSel=null;S.ghost=null;renderPanel();}
+document.querySelectorAll('#bar [data-p]').forEach(b=>b.onclick=()=>setPanel(b.dataset.p));
+$('cStars').onclick=()=>setPanel('stars');$('cLvl').onclick=()=>setPanel('level');$('cRw').onclick=()=>setPanel('platform');$('cGoal').onclick=()=>setPanel('goals');$('cAlert').onclick=()=>setPanel('alerts');$('cNext').onclick=()=>setPanel('flights');
+$('spd').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.speed=+b.dataset.s;document.querySelectorAll('#spd button').forEach(x=>x.classList.toggle('on',x===b));};
+function showModal(h){const m=$('modal');m.innerHTML=`<div class="box">${h}</div>`;m.style.display='flex';}
+
+function onTap(cx,cy){
+  const wx=cx/cam.s+cam.x,wy=cy/cam.s+cam.y,a=wx/(TW/2),b=wy/(TH/2),tx=Math.floor((a+b)/2),ty=Math.floor((b-a)/2);
+  if(buildSel){
+    const[x,y]=anchor(buildSel,tx,ty),g=S.ghost,dir=buildSel=='gate'?3:buildDir;
+    if(g&&!g.sell&&g.type==buildSel&&g.x==x&&g.y==y&&g.dir==dir){if(!g.err&&place(g.type,x,y,dir,false))S.ghost=null;else if(g.err)toast('⚠️ '+g.err);}
+    else S.ghost={type:buildSel,x,y,dir,err:canPlace(buildSel,x,y,dir)};
+    renderPanel();return;
+  }
+  if(kind(tx,ty)=='floor'&&!owned(ty)){const i=plotAt(ty);panel=null;setPanel('grond');if(i>=0&&plotBuyable(i))toast(`🏷️ ${PLOTS[i].n} te koop voor €${PLOTS[i].c.toLocaleString('nl-BE')}`);return;}
+  const o=S.grid[ty]&&S.grid[ty][tx];
+  if(panel=='sloop'){if(o){if(S.ghost&&S.ghost.sell===o){sell(o);S.ghost=null;}else S.ghost={sell:o};}else S.ghost=null;renderPanel();return;}
+  if(o){S.sel=o;panel='obj';buildSel=null;S.ghost=null;renderPanel();}
+}
+
+/* ================= camera & input ================= */
+const BND={x0:P(0,GH+2)[0],x1:P(GW+8,0)[0],y0:P(0,0)[1]-120,y1:P(GW,GH)[1]+60};
+function resize(){DPR=Math.min(2.5,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;clampCam();}
+function fitCam(){
+  const hud=$('hud').getBoundingClientRect().bottom+8,bar=$('bar').offsetHeight+8,aw=W-16,ah=Math.max(120,H-hud-bar);
+  const x0=P(AX-4,S.oy1)[0],x1=P(GW+1,S.oy0)[0],y0=P(AX-4,S.oy0)[1]-70,y1=P(GW+1,S.oy1)[1]+10;
+  let s=Math.min(aw/(x1-x0),ah/(y1-y0));
+  if(W<H)s=Math.max(.55,s);
+  cam.s=Math.max(.3,Math.min(1.1,s));
+  const cx=W<H?P((AX+GW)/2+1.5,(S.oy0+S.oy1)/2)[0]:(x0+x1)/2,cy=W<H?P((AX+GW)/2+1.5,(S.oy0+S.oy1)/2)[1]:(y0+y1)/2;
+  cam.x=cx-W/2/cam.s;cam.y=cy-(hud+ah/2)/cam.s;clampCam();
+}
+function focusTerm(i){const[r0,r1]=termRange(i),c=P((AX+GW)/2,(r0+r1)/2);cam.x=c[0]-W/2/cam.s;cam.y=c[1]-H/2/cam.s;clampCam();if(W<760||H<520){panel=null;renderPanel();}}
+function clampCam(){cam.s=Math.max(.3,Math.min(2.2,cam.s));const cx=cam.x+W/2/cam.s,cy=cam.y+H/2/cam.s;cam.x=Math.max(BND.x0,Math.min(BND.x1,cx))-W/2/cam.s;cam.y=Math.max(BND.y0,Math.min(BND.y1,cy))-H/2/cam.s;}
+const ptrs=new Map();let gest=null;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size==1)gest={type:'tap',sx:e.clientX,sy:e.clientY};else if(ptrs.size==2){const[a,b]=[...ptrs.values()];gest={type:'pinch',d0:Math.hypot(a.x-b.x,a.y-b.y),s0:cam.s};}});
+cv.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p||!gest)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  if(gest.type=='pinch'&&ptrs.size==2){const[a,b]=[...ptrs.values()],mx=(a.x+b.x)/2,my=(a.y+b.y)/2,wx=mx/cam.s+cam.x,wy=my/cam.s+cam.y;cam.s=Math.max(.3,Math.min(2.2,gest.s0*Math.hypot(a.x-b.x,a.y-b.y)/gest.d0));cam.x=wx-mx/cam.s;cam.y=wy-my/cam.s;clampCam();return;}
+  if(gest.type=='tap'&&Math.hypot(e.clientX-gest.sx,e.clientY-gest.sy)>9)gest.type='pan';
+  if(gest.type=='pan'){cam.x-=dx/cam.s;cam.y-=dy/cam.s;clampCam();}});
+function up(e){if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);if(gest&&gest.type=='tap'&&!ptrs.size)onTap(e.clientX,e.clientY);if(!ptrs.size)gest=null;else if(gest&&gest.type=='pinch')gest={type:'pan'};}
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);if(!ptrs.size)gest=null;});
+cv.addEventListener('wheel',e=>{e.preventDefault();const wx=e.clientX/cam.s+cam.x,wy=e.clientY/cam.s+cam.y;cam.s*=e.deltaY<0?1.1:.9;cam.s=Math.max(.3,Math.min(2.2,cam.s));cam.x=wx-e.clientX/cam.s;cam.y=wy-e.clientY/cam.s;clampCam();},{passive:false});
+let lastOri=innerWidth>innerHeight;addEventListener('resize',()=>{resize();const o=innerWidth>innerHeight;if(o!==lastOri){lastOri=o;fitCam();}});
+
+/* ================= loop ================= */
+let last=performance.now(),uiT=0,saveT=0;
+function frame(now){
+  const rdt=Math.min(.1,(now-last)/1000);last=now;
+  if(!S.over&&S.speed>0&&$('modal').style.display=='none'){let sim=rdt*S.speed;while(sim>1e-6){const d=Math.min(.05,sim);step(d);sim-=d;}}
+  for(const c of S.cars){c.y+=c.v*c.sp*rdt;if(c.y>GH+16)c.y=-16;if(c.y<-16)c.y=GH+16;}
+  for(const f of S.floats)f.t+=rdt;S.floats=S.floats.filter(f=>f.t<1.5);
+  if((saveT+=rdt)>15){saveT=0;if($('modal').style.display=='none')saveGame();}
+  draw();uiT+=rdt;if(uiT>.3){uiT=0;updHud();if(['staff','flights','stars','goals','alerts','bank','grond','obj','level','platform'].includes(panel))renderPanel();}
+  requestAnimationFrame(frame);
+}
+const SV=loadSave();
+init(SV);resize();fitCam();updHud();
+showModal(`<h1>✈️ Luchthaven Tycoon</h1><p>Bouw en run je eigen luchthaven, in de geest van Theme Hospital!</p>${SV?'':`<ul>
+<li>Reizigers gaan: <b>🛄 Inchecken → 🛃 Security → 🛫 Gate</b></li>
+<li>Balies en security werken enkel met <b>personeel</b></li>
+<li>☕🍔 Eten, 🛍️ winkels, 🚻 toiletten, 💺 zitjes en 🥂 een lounge houden reizigers blij — en brengen geld op</li>
+<li>🧹 Schoonmakers ruimen afval op en poetsen de toiletten</li>
+<li>Elke passagier aan boord = <b>€30</b>. Reizigers geven ⭐ reviews: die bepalen je reputatie en dus hoeveel vluchten je krijgt.</li></ul>
+<p style="color:#aeb8c6">Sleep = verschuiven • knijp = zoomen • tik = bouwen (tik 2× om te bevestigen)<br>💾 Je voortgang wordt automatisch bewaard.</p>`}
+${SV?`<p>Welkom terug! 💾 Opgeslagen spel: <b>Dag ${SV.day+1}</b> · ${eur(SV.money)} · ${SV.stats.boarded} passagiers</p>
+<button class="b y" style="width:100%;padding:13px;font-size:15px" onclick="$('modal').style.display='none'">▶ Verder spelen</button>
+<button class="b" style="width:100%;padding:11px;margin-top:8px" onclick="newGameAsk()">🔄 Nieuw spel</button>`
+:`<button class="b y" style="width:100%;padding:13px;font-size:15px" onclick="$('modal').style.display='none';saveGame();toast('💡 Tip: bouw een koffiebar na de security en neem een schoonmaker aan')">Start!</button>`}`);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
