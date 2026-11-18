@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Luchthaven Tycoon</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1f2a3d">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Luchthaven">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden;background:#8cc075;font-family:-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;touch-action:none}
@@ -1390,6 +1398,7 @@ ${SV?`<p>Welkom terug! 💾 Opgeslagen spel: <b>Dag ${SV.day+1}</b> · ${eur(SV.
 :`<button class="b y" style="width:100%;padding:13px;font-size:15px" onclick="saveGame();startTour()">📖 Start met de rondleiding</button>
 <button class="b" style="width:100%;padding:11px;margin-top:8px" onclick="$('modal').style.display='none';saveGame();toast('💡 Tip: bouw een koffiebar na de security en neem een schoonmaker aan')">Overslaan — meteen spelen</button>`}`);
 requestAnimationFrame(frame);
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>
 </html>
