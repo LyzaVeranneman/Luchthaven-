@@ -1398,7 +1398,13 @@ ${SV?`<p>Welkom terug! 💾 Opgeslagen spel: <b>Dag ${SV.day+1}</b> · ${eur(SV.
 :`<button class="b y" style="width:100%;padding:13px;font-size:15px" onclick="saveGame();startTour()">📖 Start met de rondleiding</button>
 <button class="b" style="width:100%;padding:11px;margin-top:8px" onclick="$('modal').style.display='none';saveGame();toast('💡 Tip: bouw een koffiebar na de security en neem een schoonmaker aan')">Overslaan — meteen spelen</button>`}`);
 requestAnimationFrame(frame);
-if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+if('serviceWorker' in navigator)window.addEventListener('load',()=>{
+  navigator.serviceWorker.register('sw.js').then(()=>navigator.serviceWorker.ready).then(reg=>{
+    const sync=()=>{if(reg.sync)reg.sync.register('luchthaven-sync').catch(()=>{});};
+    sync();window.addEventListener('online',sync);
+    if(reg.periodicSync&&navigator.permissions)navigator.permissions.query({name:'periodic-background-sync'}).then(p=>{if(p.state=='granted')reg.periodicSync.register('luchthaven-update',{minInterval:24*60*60*1000}).catch(()=>{});}).catch(()=>{});
+  }).catch(()=>{});
+});
 </script>
 </body>
 </html>
